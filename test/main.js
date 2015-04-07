@@ -8,7 +8,9 @@ var fs = require('fs');
 var config = JSON.parse(fs.readFileSync(__dirname+'/../config.json'));
 
 var userid = 'user1';
-var loginToken = jwt.sign({id: userid}, config.secret);
+var expDate = new Date();
+expDate.setDate(expDate.getDate() + 14); //14 days into future
+var loginToken = jwt.sign({id: userid,exp: expDate.getTime()}, config.secret);
 function connectMqtt(userid, token) {
     return new Promise(function(resolve, reject) {
         var client  = mqtt.connect(thirdbaseroot, {
@@ -51,7 +53,8 @@ it('should connect to MQTT', function() {
 
 it('should fetch list of own user\'s threads', function () {
     var url = [homebaseroot,'users',userid, 'threads'].join('/');
-    return request.get(httpHeaders(url)).then(function(response) {
+    return request.get(httpHeaders(url))
+    .then(function(response) {
         assert.equal(200, response.statusCode); //will throw if unequal
         return JSON.parse(response.body);
     })

@@ -35,7 +35,8 @@ function httpHeadersForToken(token) {
             url: url,
             resolveWithFullResponse: true,
             headers: {
-                'Authorization': 'Bearer '+token
+                'Authorization': 'Bearer '+token,
+                'Content-Type': 'application/json'
             }
         };
     }
@@ -70,4 +71,20 @@ it('should fetch list of own user\'s threads', function () {
     .then(function(body){
         assert(body.rows) // chech that returned body has rows.
     });
+});
+
+it('should create new thread', function() {
+  var url = [homebaseroot,'threads'].join('/');
+  return request.post(postHeaders(url,{
+    "users": ['user1', 'user2']
+  }))
+  .then(function(response) {
+    assert.equal(201, response.statusCode);
+    var location = response.headers.location;
+    var locationUrl = homebaseroot + location;
+    return request.get(httpHeaders(locationUrl))
+    .then(function(response) {
+      assert.equal(200, response.statusCode);
+    })
+  })
 });

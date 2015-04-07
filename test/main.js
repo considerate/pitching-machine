@@ -42,6 +42,15 @@ function httpHeadersForToken(token) {
 };
 var httpHeaders = httpHeadersForToken(loginToken);
 
+function postHeaders(url, body) {
+    var options = httpHeaders(url);
+    if(typeof body === 'object') {
+        body = JSON.stringify(body);
+    }
+    options.body = body;
+    return options;
+}
+
 it('should connect to MQTT', function() {
     return connectMqtt(userid,loginToken)
     .then(function(client) {

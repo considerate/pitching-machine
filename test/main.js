@@ -16,8 +16,8 @@ function tokenForUser(userid) {
     return jwt.sign({id: userid ,exp: expDate.getTime()}, config.secret);
 }
 
-var loginToken1 = tokenForUser(user1);
-var loginToken2 = tokenForUser(user2);
+var loginToken1 = tokenForUser(userid1);
+var loginToken2 = tokenForUser(userid2);
 var httpHeaders1 = httpHeadersForToken(loginToken1);
 var httpHeaders2 = httpHeadersForToken(loginToken2);
 function connectMqtt(userid, token) {

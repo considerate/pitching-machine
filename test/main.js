@@ -94,7 +94,7 @@ it('should fetch list of own user\'s threads', function () {
         return JSON.parse(response.body);
     })
     .then(function(body){
-        assert(body.rows) // check that returned body has rows.
+        assert(body.threads); // check that returned body has rows.
     });
 });
 
@@ -138,7 +138,7 @@ it('should reply that user 1 has two threads', function () {
         return JSON.parse(response.body);
     })
     .then(function(body){
-        assert.equal(2, body.rows.length) // There should now be two threads 
+        assert.equal(2, body.threads.length); // There should now be two threads 
     });
 });
 
@@ -175,7 +175,7 @@ it('should reply that user 2 has two threads', function () {
         return JSON.parse(response.body);
     })
     .then(function(body){
-        assert.equal(2, body.rows.length) // There should now be two threads 
+        assert.equal(2, body.threads.length); // There should now be two threads 
     });
 });
 

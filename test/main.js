@@ -79,6 +79,7 @@ it('should create new thread', function() {
     "users": ['user1', 'user2']
   }))
   .then(function(response) {
+    console.log("Created new thread");
     assert.equal(201, response.statusCode);
     var location = response.headers.location;
     var locationUrl = homebaseroot + location;
@@ -88,3 +89,32 @@ it('should create new thread', function() {
     })
   })
 });
+
+it('should create another new thread', function() {
+  var url = [homebaseroot,'threads'].join('/');
+  return request.post(postHeaders(url,{
+    "users": ['user3', 'user4']
+  }))
+  .then(function(response) {
+    assert.equal(201, response.statusCode);
+    var location = response.headers.location;
+    var locationUrl = homebaseroot + location;
+    return request.get(httpHeaders(locationUrl))
+    .then(function(response) {
+      assert.equal(200, response.statusCode);
+    })
+  })
+});
+
+it('should fetch these newly created threads', function () {
+    var url = [homebaseroot,'users',userid, 'threads'].join('/');
+    return request.get(httpHeaders(url))
+    .then(function(response) {
+        assert.equal(200, response.statusCode); //will throw if unequal
+        return JSON.parse(response.body);
+    })
+    .then(function(body){
+        assert.equal(2, body.rows.length) // There should now be two threads 
+    });
+});
+

@@ -48,6 +48,7 @@ function postHeaders(url, body) {
     if(typeof body === 'object') {
         body = JSON.stringify(body);
     }
+    options.followAllRedirects = true;
     options.body = body;
     return options;
 }
@@ -74,17 +75,57 @@ it('should fetch list of own user\'s threads', function () {
 });
 
 it('should create new thread', function() {
-  var url = [homebaseroot,'threads'].join('/');
-  return request.post(postHeaders(url,{
-    "users": ['user1', 'user2']
-  }))
-  .then(function(response) {
-    assert.equal(201, response.statusCode);
-    var location = response.headers.location;
-    var locationUrl = homebaseroot + location;
-    return request.get(httpHeaders(locationUrl))
+    var url = [homebaseroot,'threads'].join('/');
+    return request.post(postHeaders(url,{
+        "users": ['user1', 'user2']
+    }))
     .then(function(response) {
-      assert.equal(200, response.statusCode);
+        assert.equal(201, response.statusCode);
+        var location = response.headers.location;
+        var locationUrl = homebaseroot + location;
+        return request.get(httpHeaders(locationUrl))
+        .then(function(response) {
+            assert.equal(200, response.statusCode);
+        })
     })
-  })
+});
+
+it('should add user to thread', function() {
+    var url = [homebaseroot, 'threads'].join('/');
+    return request.post(postHeaders(url, {
+        "users": ['user1','user2','user3']
+    }))
+    .then(function(response) {
+        var location = response.headers.location;
+        var addUserUrl = homebaseroot + location + '/users';
+        return request.post(postHeaders(addUserUrl, {
+            "users": ['user4']
+        }))
+    }).then(function(response) {
+        var data = JSON.parse(response.body);
+        var users = data.thread.users;
+        var index = users.indexOf('user4');
+        assert.notEqual(-1, index);
+    })
+});
+
+it('should remove user from thread', function() {
+    var url = [homebaseroot, 'threads'].join('/');
+    return request.post(postHeaders(url, {
+        "users": ['user1','user2']
+    }))
+    .then(function(response) {
+        var location = response.headers.location;
+        var removeUserUrl = homebaseroot + location + '/users/' + 'user1';
+        console.log(removeUserUrl);
+        return request.del(httpHeaders(removeUserUrl));
+    })
+    .then(function(response) {
+        console.log(response.statusCode);
+        var data = JSON.parse(response.body);
+        console.log(data);
+        var users = data.users;
+        var index = users.indexOf('user1');
+        assert.equal(-1, index);
+    });
 });

@@ -9,10 +9,15 @@ var config = JSON.parse(fs.readFileSync(__dirname+'/../config.json'));
 
 var userid1 = 'user1';
 var userid2 = 'user2';
-var expDate = new Date();
-expDate.setDate(expDate.getDate() + 14); //14 days into future
-var loginToken1 = jwt.sign({id: userid1 ,exp: expDate.getTime()}, config.secret);
-var loginToken2 = jwt.sign({id: userid2 ,exp: expDate.getTime()}, config.secret);
+
+function tokenForUser(userid) {
+    var expDate = new Date();
+    expDate.setDate(expDate.getDate() + 14); //14 days into future
+    return jwt.sign({id: userid ,exp: expDate.getTime()}, config.secret);
+}
+
+var loginToken1 = tokenForUser(user1);
+var loginToken2 = tokenForUser(user2);
 var httpHeaders1 = httpHeadersForToken(loginToken1);
 var httpHeaders2 = httpHeadersForToken(loginToken2);
 function connectMqtt(userid, token) {
@@ -59,17 +64,30 @@ function postHeaders(url, body, httpHeaders) {
 it('should connect to MQTT', function() {
     return connectMqtt(userid1, loginToken1)
     .then(function(client) {
-        client.publish('online/'+userid1, JSON.stringify({
+        var json = JSON.stringify({
             status: 'online'
-        }));
+        });
+        client.publish('online/'+userid1, {
+            message: json,
+            options: {
+                retain: 1
+            }
+        });
     });
 });
+function connectTwoClients(user1,user2) {
+    var loginToken1 = tokenForUser(user1);
+    var loginToken2 = tokenForUser(user2);
+    var connect1 = connectMqtt(user1,loginToken1);
+    var connect2 = connectMqtt(user2,loginToken2);
+    return Promise.all([connect1,connect2]);
+}
 
 it('should recieve message', function(){
     var user1 = 'user_A',
         user2 = 'user_B',
-        loginToken1 = jwt.sign({id: user1,exp: expDate.getTime()}, config.secret),
-        loginToken2 = jwt.sign({id: user2,exp: expDate.getTime()}, config.secret),
+        loginToken1 = tokenForUser(user1),
+        loginToken2 = tokenForUser(user2),
         con1 = connectMqtt(user1, loginToken1),
         con2 = connectMqtt(user2, loginToken2),
         url = [homebaseroot,'threads'].join('/'),
@@ -83,7 +101,32 @@ it('should recieve message', function(){
     //TODO
     //1. user1 sends msg to user2
     //2. check if user2 recieved msg
-})
+});
+
+
+
+
+it('should tell user online status', function() {
+    return connectTwoClients('user1', 'user2')
+    .then(function(clients) {
+        return new Promise(function(resolve) {
+            var c1 = clients[0];
+            var c2 = clients[1];
+            c1.publish('online/user1', {
+                message: json,
+                options: {
+                    retain: 1
+                }
+            });
+
+            c2.subscribe('online/user1');
+            c2.on('message', function(message){
+                console.log(message);
+                resolve();
+            });
+        });
+    })
+});
 
 
 it('should fetch list of own user\'s threads', function () {
@@ -115,19 +158,19 @@ it('should create new thread', function() {
 });
 
 it('should create another new thread', function() {
-  var url = [homebaseroot,'threads'].join('/');
-  return request.post(postHeaders(url,{
-    "users": ['user3', 'user4']
-  }, httpHeaders1))
-  .then(function(response) {
-    assert.equal(201, response.statusCode);
-    var location = response.headers.location;
-    var locationUrl = homebaseroot + location;
-    return request.get(httpHeaders1(locationUrl))
+    var url = [homebaseroot,'threads'].join('/');
+    return request.post(postHeaders(url,{
+        "users": ['user3', 'user4']
+    }, httpHeaders1))
     .then(function(response) {
-      assert.equal(200, response.statusCode);
+        assert.equal(201, response.statusCode);
+        var location = response.headers.location;
+        var locationUrl = homebaseroot + location;
+        return request.get(httpHeaders1(locationUrl))
+        .then(function(response) {
+            assert.equal(200, response.statusCode);
+        })
     })
-  })
 });
 
 it('should reply that user 1 has two threads', function () {
@@ -152,19 +195,19 @@ it('should connect to MQTT with user 2', function() {
 });
 
 it('should create new thread with user 2', function() {
-  var url = [homebaseroot,'threads'].join('/');
-  return request.post(postHeaders(url,{
-    "users": ['user3', 'user4']
-  }, httpHeaders2))
-  .then(function(response) {
-    assert.equal(201, response.statusCode);
-    var location = response.headers.location;
-    var locationUrl = homebaseroot + location;
-    return request.get(httpHeaders2(locationUrl))
+    var url = [homebaseroot,'threads'].join('/');
+    return request.post(postHeaders(url,{
+        "users": ['user3', 'user4']
+    }, httpHeaders2))
     .then(function(response) {
-      assert.equal(200, response.statusCode);
+        assert.equal(201, response.statusCode);
+        var location = response.headers.location;
+        var locationUrl = homebaseroot + location;
+        return request.get(httpHeaders2(locationUrl))
+        .then(function(response) {
+            assert.equal(200, response.statusCode);
+        })
     })
-  })
 });
 
 it('should reply that user 2 has two threads', function () {

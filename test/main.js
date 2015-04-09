@@ -84,23 +84,21 @@ function connectTwoClients(user1,user2) {
 }
 
 it('should recieve message', function(){
-    var user1 = 'user_A',
-        user2 = 'user_B',
-        loginToken1 = tokenForUser(user1),
-        loginToken2 = tokenForUser(user2),
-        con1 = connectMqtt(user1, loginToken1),
-        con2 = connectMqtt(user2, loginToken2),
-        url = [homebaseroot,'threads'].join('/'),
-        httpHeaders = httpHeadersForToken(loginToken1),
-        headers = postHeaders(url, {"users": [user1, user2]}, httpHeaders),
-        thread = request.post(headers);
+    return connectTwoClients('user1', 'user2')
+    .then(function(clients) {
+        return new Promise(function(resolve) {
+            var c1 = clients[0];
+            var c2 = clients[1];
+            c2.on('message', function(topic, message) {
+                resolve();
+            });
+            c1.subscribe('threads/hej');
+            c2.subscribe('threads/hej');
+            c1.publish('threads/hej', 'hejsan');
+        })
 
-    // 不知道
-    return user1 != user2;
+    })
 
-    //TODO
-    //1. user1 sends msg to user2
-    //2. check if user2 recieved msg
 });
 
 
@@ -254,13 +252,10 @@ it('should remove user from thread', function() {
     .then(function(response) {
         var location = response.headers.location;
         var removeUserUrl = homebaseroot + location + '/users/' + 'user1';
-        console.log(removeUserUrl);
         return request.del(httpHeaders1(removeUserUrl));
     })
     .then(function(response) {
-        console.log(response.statusCode);
         var data = JSON.parse(response.body);
-        console.log(data);
         var users = data.users;
         var index = users.indexOf('user1');
         assert.equal(-1, index);

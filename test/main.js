@@ -7,10 +7,10 @@ var jwt = require('jsonwebtoken');
 var fs = require('fs');
 var config = JSON.parse(fs.readFileSync(__dirname+'/../config.json'));
 
-expDate.setDate(expDate.getDate() + 14); //14 days into future
 var userid1 = 'user1';
 var userid2 = 'user2';
 var expDate = new Date();
+expDate.setDate(expDate.getDate() + 14); //14 days into future
 var loginToken1 = jwt.sign({id: userid1 ,exp: expDate.getTime()}, config.secret);
 var loginToken2 = jwt.sign({id: userid2 ,exp: expDate.getTime()}, config.secret);
 var httpHeaders1 = httpHeadersForToken(loginToken1);
@@ -67,14 +67,17 @@ it('should connect to MQTT', function() {
 it('should recieve message', function(){
     var user1 = 'user_A',
         user2 = 'user_B',
-        loginToken1 = jwt.sign({id: userid,exp: expDate.getTime()}, config.secret),
-        loginToken2 = jwt.sign({id: userid,exp: expDate.getTime()}, config.secret),
+        loginToken1 = jwt.sign({id: user1,exp: expDate.getTime()}, config.secret),
+        loginToken2 = jwt.sign({id: user2,exp: expDate.getTime()}, config.secret),
         con1 = connectMqtt(user1, loginToken1),
         con2 = connectMqtt(user2, loginToken2),
         url = [homebaseroot,'threads'].join('/'),
-        thread = request.post(postHeaders(url,{"users": ['user_A', 'user_B']}));
+        httpHeaders = httpHeadersForToken(loginToken1),
+        headers = postHeaders(url, {"users": [user1, user2]}, httpHeaders),
+        thread = request.post(headers);
 
-    return(user1 != user2);
+    // 不知道
+    return user1 != user2;
 
     //TODO
     //1. user1 sends msg to user2

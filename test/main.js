@@ -61,6 +61,24 @@ it('should connect to MQTT', function() {
     });
 });
 
+it('should recieve message', function(){
+    var user1 = 'user_A',
+        user2 = 'user_B',
+        loginToken1 = jwt.sign({id: userid,exp: expDate.getTime()}, config.secret),
+        loginToken2 = jwt.sign({id: userid,exp: expDate.getTime()}, config.secret),
+        con1 = connectMqtt(user1, loginToken1),
+        con2 = connectMqtt(user2, loginToken2),
+        url = [homebaseroot,'threads'].join('/'),
+        thread = request.post(postHeaders(url,{"users": ['user_A', 'user_B']}));
+
+    return(user1 != user2);
+
+    //TODO
+    //1. user1 sends msg to user2
+    //2. check if user2 recieved msg
+})
+
+
 it('should fetch list of own user\'s threads', function () {
     var url = [homebaseroot,'users',userid, 'threads'].join('/');
     return request.get(httpHeaders(url))

@@ -20,6 +20,41 @@ var loginToken1 = tokenForUser(userid1);
 var loginToken2 = tokenForUser(userid2);
 var httpHeaders1 = httpHeadersForToken(loginToken1);
 var httpHeaders2 = httpHeadersForToken(loginToken2);
+
+function cleanDatabase() {
+    var couchroot = 'http://localhost:5984/baseball';
+    return request.get([couchroot,'_all_docs?startkey="_design/"&endkey="_design0"'].join('/'))
+    .then(function(designdocstext) {
+        var designdocs = JSON.parse(designdocstext).rows.map(function(doc) {
+           return doc.id;
+        });
+        return request.get([couchroot,'_all_docs'].join('/'))
+        .then(function(alldocstext) {
+            var alldocs = JSON.parse(alldocstext).rows;
+            var toRemove = alldocs.filter(function(doc){
+                var index = designdocs.indexOf(doc.id);
+                return index === -1;
+            }).map(function (doc) {
+                doc.value._deleted = true;
+                doc.value._id = doc.id;
+                doc.value._rev = doc.value.rev;
+                return doc.value;
+            });
+            var bulk = {
+                docs: toRemove
+            };
+            return request.post({
+                url: [couchroot,'_bulk_docs'].join('/'),
+                body: JSON.stringify(bulk),
+                headers: {
+                   'Content-Type': 'application/json'
+                }
+            }).then(function(body) {
+            });
+        });
+    });
+}
+
 function connectMqtt(userid, token) {
     return new Promise(function(resolve, reject) {
         var client  = mqtt.connect(thirdbaseroot, {
@@ -95,10 +130,8 @@ it('should recieve message', function(){
             c1.subscribe('threads/hej');
             c2.subscribe('threads/hej');
             c1.publish('threads/hej', 'hejsan');
-        })
-
-    })
-
+        });
+    });
 });
 
 
@@ -174,9 +207,24 @@ it('should create another new thread', function() {
     })
 });
 
-it('should reply that user 1 has two threads', function () {
-    var url = [homebaseroot, 'users', userid1, 'threads'].join('/');
-    return request.get(httpHeaders1(url))
+it('should add self to thread even if not given in array', function () {
+    return cleanDatabase()
+    .then(function() {
+        var url = [homebaseroot, 'threads'].join('/');
+        return request.post(postHeaders(url,{
+            "users": ['user1', 'user2']
+        },httpHeaders1));
+    })
+    .then(function () {
+        var url = [homebaseroot, 'threads'].join('/');
+        return request.post(postHeaders(url,{
+            "users": ['user3', 'user4']
+        }, httpHeaders1))
+    })
+    .then(function() {
+        var url = [homebaseroot, 'users', userid1, 'threads'].join('/');
+        return request.get(httpHeaders1(url));
+    })
     .then(function(response) {
         assert.equal(200, response.statusCode); //will throw if unequal
         return JSON.parse(response.body);
@@ -194,35 +242,6 @@ it('should connect to MQTT with user 2', function() {
         }));
     });
 });
-
-it('should create new thread with user 2', function() {
-    var url = [homebaseroot,'threads'].join('/');
-    return request.post(postHeaders(url,{
-        "users": ['user3', 'user4']
-    }, httpHeaders2))
-    .then(function(response) {
-        assert.equal(201, response.statusCode);
-        var location = response.headers.location;
-        var locationUrl = homebaseroot + location;
-        return request.get(httpHeaders2(locationUrl))
-        .then(function(response) {
-            assert.equal(200, response.statusCode);
-        })
-    })
-});
-
-it('should reply that user 2 has two threads', function () {
-    var url = [homebaseroot, 'users', userid2, 'threads'].join('/');
-    return request.get(httpHeaders2(url))
-    .then(function(response) {
-        assert.equal(200, response.statusCode); //will throw if unequal
-        return JSON.parse(response.body);
-    })
-    .then(function(body){
-        assert.equal(2, body.threads.length); // There should now be two threads
-    });
-});
-
 
 
 it('should add user to thread', function() {

@@ -112,18 +112,21 @@ it('should tell user online status', function() {
         return new Promise(function(resolve) {
             var c1 = clients[0];
             var c2 = clients[1];
-            c1.publish('online/user1', {
-                message: json,
-                options: {
-                    retain: 1
-                }
-            });
-
-            c2.subscribe('online/user1');
             c2.on('message', function(message){
-                console.log(message);
                 resolve();
             });
+            var message = JSON.stringify({
+                status: 'online'
+            });
+            c2.subscribe('online/user1');
+            c1.publish('online/user1', message, {
+                    retain: 1,
+                    qos: 2
+            }, function(err,result) {
+                console.log('Client thinks it published!');
+            });
+            c1.subscribe('online/user1');
+
         });
     })
 });
@@ -181,7 +184,7 @@ it('should reply that user 1 has two threads', function () {
         return JSON.parse(response.body);
     })
     .then(function(body){
-        assert.equal(2, body.threads.length); // There should now be two threads 
+        assert.equal(2, body.threads.length); // There should now be two threads
     });
 });
 
@@ -218,7 +221,7 @@ it('should reply that user 2 has two threads', function () {
         return JSON.parse(response.body);
     })
     .then(function(body){
-        assert.equal(2, body.threads.length); // There should now be two threads 
+        assert.equal(2, body.threads.length); // There should now be two threads
     });
 });
 

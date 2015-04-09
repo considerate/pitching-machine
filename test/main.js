@@ -7,10 +7,14 @@ var jwt = require('jsonwebtoken');
 var fs = require('fs');
 var config = JSON.parse(fs.readFileSync(__dirname+'/../config.json'));
 
-var userid = 'user1';
-var expDate = new Date();
 expDate.setDate(expDate.getDate() + 14); //14 days into future
-var loginToken = jwt.sign({id: userid,exp: expDate.getTime()}, config.secret);
+var userid1 = 'user1';
+var userid2 = 'user2';
+var expDate = new Date();
+var loginToken1 = jwt.sign({id: userid1 ,exp: expDate.getTime()}, config.secret);
+var loginToken2 = jwt.sign({id: userid2 ,exp: expDate.getTime()}, config.secret);
+var httpHeaders1 = httpHeadersForToken(loginToken1);
+var httpHeaders2 = httpHeadersForToken(loginToken2);
 function connectMqtt(userid, token) {
     return new Promise(function(resolve, reject) {
         var client  = mqtt.connect(thirdbaseroot, {
@@ -41,9 +45,8 @@ function httpHeadersForToken(token) {
         };
     }
 };
-var httpHeaders = httpHeadersForToken(loginToken);
 
-function postHeaders(url, body) {
+function postHeaders(url, body, httpHeaders) {
     var options = httpHeaders(url);
     if(typeof body === 'object') {
         body = JSON.stringify(body);
@@ -53,23 +56,23 @@ function postHeaders(url, body) {
 }
 
 it('should connect to MQTT', function() {
-    return connectMqtt(userid,loginToken)
+    return connectMqtt(userid1, loginToken1)
     .then(function(client) {
-        client.publish('online/'+userid, JSON.stringify({
+        client.publish('online/'+userid1, JSON.stringify({
             status: 'online'
         }));
     });
 });
 
 it('should fetch list of own user\'s threads', function () {
-    var url = [homebaseroot,'users',userid, 'threads'].join('/');
-    return request.get(httpHeaders(url))
+    var url = [homebaseroot, 'users', userid1, 'threads'].join('/');
+    return request.get(httpHeaders1(url))
     .then(function(response) {
         assert.equal(200, response.statusCode); //will throw if unequal
         return JSON.parse(response.body);
     })
     .then(function(body){
-        assert(body.rows) // chech that returned body has rows.
+        assert(body.rows) // check that returned body has rows.
     });
 });
 
@@ -77,13 +80,12 @@ it('should create new thread', function() {
   var url = [homebaseroot,'threads'].join('/');
   return request.post(postHeaders(url,{
     "users": ['user1', 'user2']
-  }))
+  }, httpHeaders1))
   .then(function(response) {
-    console.log("Created new thread");
     assert.equal(201, response.statusCode);
     var location = response.headers.location;
     var locationUrl = homebaseroot + location;
-    return request.get(httpHeaders(locationUrl))
+    return request.get(httpHeaders1(locationUrl))
     .then(function(response) {
       assert.equal(200, response.statusCode);
     })
@@ -94,21 +96,21 @@ it('should create another new thread', function() {
   var url = [homebaseroot,'threads'].join('/');
   return request.post(postHeaders(url,{
     "users": ['user3', 'user4']
-  }))
+  }, httpHeaders1))
   .then(function(response) {
     assert.equal(201, response.statusCode);
     var location = response.headers.location;
     var locationUrl = homebaseroot + location;
-    return request.get(httpHeaders(locationUrl))
+    return request.get(httpHeaders1(locationUrl))
     .then(function(response) {
       assert.equal(200, response.statusCode);
     })
   })
 });
 
-it('should fetch these newly created threads', function () {
-    var url = [homebaseroot,'users',userid, 'threads'].join('/');
-    return request.get(httpHeaders(url))
+it('should reply that user 1 has two threads', function () {
+    var url = [homebaseroot, 'users', userid1, 'threads'].join('/');
+    return request.get(httpHeaders1(url))
     .then(function(response) {
         assert.equal(200, response.statusCode); //will throw if unequal
         return JSON.parse(response.body);
@@ -117,4 +119,42 @@ it('should fetch these newly created threads', function () {
         assert.equal(2, body.rows.length) // There should now be two threads 
     });
 });
+
+it('should connect to MQTT with user 2', function() {
+    return connectMqtt(userid2, loginToken2)
+    .then(function(client) {
+        client.publish('online/'+userid2, JSON.stringify({
+            status: 'online'
+        }));
+    });
+});
+
+it('should create new thread with user 2', function() {
+  var url = [homebaseroot,'threads'].join('/');
+  return request.post(postHeaders(url,{
+    "users": ['user3', 'user4']
+  }, httpHeaders2))
+  .then(function(response) {
+    assert.equal(201, response.statusCode);
+    var location = response.headers.location;
+    var locationUrl = homebaseroot + location;
+    return request.get(httpHeaders2(locationUrl))
+    .then(function(response) {
+      assert.equal(200, response.statusCode);
+    })
+  })
+});
+
+it('should reply that user 2 has two threads', function () {
+    var url = [homebaseroot, 'users', userid2, 'threads'].join('/');
+    return request.get(httpHeaders2(url))
+    .then(function(response) {
+        assert.equal(200, response.statusCode); //will throw if unequal
+        return JSON.parse(response.body);
+    })
+    .then(function(body){
+        assert.equal(2, body.rows.length) // There should now be two threads 
+    });
+});
+
 

@@ -352,7 +352,7 @@ function repeat(c, n) {
    return array.map(constant(c));
 }
 
-it('should return afterlink if max messages fetched and no before or after specified', function() {
+it('should return beforelink if max messages fetched and no before or after specified', function() {
     var url = [homebaseroot, 'threads'].join('/');
     this.timeout(10000);
     return cleanDatabase()
@@ -415,6 +415,6 @@ it('should return afterlink if max messages fetched and no before or after speci
             return message.body === 'Hej på dig!';
         });
         assert(thisMsg.length > 0);
-        assert(body.links.after);
+        assert(body.links.before);
     });
 });

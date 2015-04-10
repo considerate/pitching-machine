@@ -139,9 +139,6 @@ it('should recieve message', function(){
     });
 });
 
-
-
-
 it('should tell user online status', function() {
     return connectTwoClients('user1', 'user2')
     .then(function(clients) {
@@ -166,7 +163,6 @@ it('should tell user online status', function() {
         });
     })
 });
-
 
 it('should fetch list of own user\'s threads', function () {
     var url = [homebaseroot, 'users', userid1, 'threads'].join('/');
@@ -284,4 +280,141 @@ it('should remove user from thread', function() {
         var index = users.indexOf('user1');
         assert.equal(-1, index);
     });
+});
+
+it('should store sent message in database', function() {
+    var url = [homebaseroot, 'threads'].join('/');
+    this.timeout(10000);
+    return cleanDatabase()
+    .then(function() {
+        return request.post(postHeaders(url, {
+            "users": ['user1', 'user2']
+        }, httpHeaders1));
+    })
+    .then(function(response) {
+        var location = response.headers.location.split('/');
+        return location;
+    })
+    .then(function(location) {
+        return connectTwoClients('user1','user2')
+        .then(function(clients) {
+            return {
+                location: location,
+                clients: clients
+            };
+        })
+    })
+    .then(function(result) {
+        var clients = result.clients;
+        var location = result.location;
+        var c1 = clients[0];
+        var c2 = clients[1];
+        var topic = ['threads',location[2],'messages'].join('/');
+        return new Promise(function(resolve) {
+            c1.on('message', function(t,msg) {
+                if(t === topic) {
+                    resolve();
+                }
+            })
+            c1.subscribe(topic);
+            c2.subscribe(topic);
+            var message = {
+                body: 'Hej på dig!'
+            };
+            var payload = JSON.stringify(message);
+            c1.publish(topic, payload);
+        })
+        .then(function() {
+            var messageUrl = homebaseroot + location.join('/') + '/messages';
+            return messageUrl;
+        });
+    })
+    .then(function(messageUrl) {
+        return request.get(httpHeaders1(messageUrl));
+    })
+    .then(function(messagesresponse) {
+        var body = JSON.parse(messagesresponse.body);
+        var thisMsg = body.messages.filter(function(message) {
+            return message.body === 'Hej på dig!';
+        });
+        assert(thisMsg.length > 0);
+    });
+});
+
+function constant(c) {
+   return function() {
+      return c;
+   }
+}
+
+function repeat(c, n) {
+   var array = new Array(n);
+   return array.map(constant(c));
+}
+
+it('should return afterlink if max messages fetched and no before or after specified', function() {
+    var url = [homebaseroot, 'threads'].join('/');
+    this.timeout(10000);
+    return cleanDatabase()
+    .then(function() {
+        return request.post(postHeaders(url, {
+            "users": ['user1', 'user2']
+        }, httpHeaders1));
+    })
+    .then(function(response) {
+        var location = response.headers.location.split('/');
+        return location;
+    })
+    .then(function(location) {
+        return connectTwoClients('user1','user2')
+        .then(function(clients) {
+            return {
+                location: location,
+                clients: clients
+            };
+        })
+    })
+    .then(function(result) {
+        var clients = result.clients;
+        var location = result.location;
+        var c1 = clients[0];
+        var c2 = clients[1];
+        var topic = ['threads',location[2],'messages'].join('/');
+        return new Promise(function(resolve) {
+            var waitingfor = 21;
+            c1.on('message', function(t,msg) {
+                if(t === topic) {
+                    if(waitingfor > 1) {
+                        waitingfor -= 1;
+                    } else {
+                        resolve();
+                    }
+                }
+            })
+            c1.subscribe(topic);
+            c2.subscribe(topic);
+            var message = {
+                body: 'Hej på dig!'
+            };
+            var payload = JSON.stringify(message);
+            for(var i = 0; i < 21; i++) {
+                c1.publish(topic, payload);
+            }
+        })
+        .then(function() {
+            var messageUrl = homebaseroot + location.join('/') + '/messages';
+            return messageUrl;
+        });
+    })
+    .then(function(messageUrl) {
+        return request.get(httpHeaders1(messageUrl));
+    })
+    .then(function(messagesresponse) {
+        var body = JSON.parse(messagesresponse.body);
+        var thisMsg = body.messages.filter(function(message) {
+            return message.body === 'Hej på dig!';
+        });
+        assert(thisMsg.length > 0);
+    });
+   
 });

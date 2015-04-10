@@ -415,6 +415,6 @@ it('should return afterlink if max messages fetched and no before or after speci
             return message.body === 'Hej på dig!';
         });
         assert(thisMsg.length > 0);
+        assert(body.links.after);
     });
-   
 });

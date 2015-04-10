@@ -50,6 +50,11 @@ function cleanDatabase() {
                    'Content-Type': 'application/json'
                 }
             }).then(function(body) {
+                return request.get([couchroot,'_all_docs'].join('/'))
+                .then(function(body) {
+                    var data = JSON.parse(body);
+                    assert.equal(designdocs.length, data.rows.length);
+                });
             });
         });
     });
@@ -254,7 +259,7 @@ it('should add user to thread', function() {
         var addUserUrl = homebaseroot + location + '/users';
         return request.post(postHeaders(addUserUrl, {
             "users": ['user4']
-        }, httpHeaders1))
+        }, httpHeaders1));
     }).then(function(response) {
         var data = JSON.parse(response.body);
         var users = data.thread.users;

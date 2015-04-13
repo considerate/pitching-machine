@@ -417,3 +417,24 @@ it('should return beforelink if max messages fetched and no before or after spec
         assert(body.links.before);
     });
 });
+
+it('should return same thread id in private chat with with same clients', function() {
+   return cleanDatabase()
+   .then(function(){
+       return createThread(['user1','user2'], 'user1')
+       .then(function(response) {
+            return createThread(['user2','user1'], 'user2')
+            .then(function(responseTwo) {
+                assert.equal(response.headers.location,
+                           responseTwo.headers.location);
+            })
+       })
+   })
+});
+
+function createThread(users, creator) {
+    var url = [homebaseroot, 'threads'].join('/');
+   return  request.post(postHeaders(url, 
+            {"users": users}, 
+            httpHeadersForToken(tokenForUser(creator))));
+}

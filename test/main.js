@@ -156,7 +156,6 @@ it('should tell user online status', function() {
                     retain: 1,
                     qos: 2
             }, function(err,result) {
-                console.log('Client thinks it published!');
             });
             c1.subscribe('online/user1');
 

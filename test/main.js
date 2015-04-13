@@ -418,7 +418,7 @@ it('should return beforelink if max messages fetched and no before or after spec
     });
 });
 
-it('should return same thread id in private chat with with same clients', function() {
+it('should return same thread id for a private chatt created with same users', function() {
    return cleanDatabase()
    .then(function(){
        return createThread(['user1','user2'], 'user1')
@@ -436,5 +436,7 @@ function createThread(users, creator) {
     var url = [homebaseroot, 'threads'].join('/');
    return  request.post(postHeaders(url, 
             {"users": users}, 
-            httpHeadersForToken(tokenForUser(creator))));
+            httpHeadersForToken(tokenForUser(creator))
+            )
+    );
 }

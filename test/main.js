@@ -101,6 +101,15 @@ function postHeaders(url, body, httpHeaders) {
     return options;
 }
 
+function createThread(users, creator) {
+    var url = [homebaseroot, 'threads'].join('/');
+   return  request.post(postHeaders(url,
+            {"users": users},
+            httpHeadersForToken(tokenForUser(creator))
+            )
+    );
+}
+
 it('should connect to MQTT', function() {
     return connectMqtt(userid1, loginToken1)
     .then(function(client) {
@@ -340,17 +349,6 @@ it('should store sent message in database', function() {
     });
 });
 
-function constant(c) {
-   return function() {
-      return c;
-   }
-}
-
-function repeat(c, n) {
-   var array = new Array(n);
-   return array.map(constant(c));
-}
-
 it('should return beforelink if max messages fetched and no before or after specified', function() {
     var url = [homebaseroot, 'threads'].join('/');
     this.timeout(10000);
@@ -432,11 +430,67 @@ it('should return same thread id for a private chatt created with same users', f
    })
 });
 
-function createThread(users, creator) {
-    var url = [homebaseroot, 'threads'].join('/');
-   return  request.post(postHeaders(url, 
-            {"users": users}, 
-            httpHeadersForToken(tokenForUser(creator))
-            )
-    );
+it('should be able to get messages from before link', function() {
+    return cleanDatabase()
+    .then(function() {
+        return createThread(['user1','user2'], 'user1');
+    })
+    .then(function(response) {
+        return connectTwoClients('user1','user2')
+        .then(function(clients) {
+            return {
+                location: response.headers.location,
+                clients: clients
+            };
+        })
+    })
+    .then(function(result) {
+        var location = result.location.split('/');
+        var topic = ['threads',location[2],'messages'].join('/');
+        return post21MessagesToTopic(topic, result.clients)
+        .then(function() {
+            return result.location;
+        })
+    })
+    .then(function(resp) {
+        var msgUrl = homebaseroot + resp + '/messages';
+        return request.get(httpHeaders1(msgUrl));
+    })
+    .then(function(messagesresponse) {
+        var body = JSON.parse(messagesresponse.body);
+        var msgUrl = homebaseroot + body.links.before;
+        return request.get(httpHeaders1(msgUrl));
+    })
+    .then(function(msgresponse) {
+        var body = JSON.parse(msgresponse.body);
+        var thisMsg = body.messages.filter(function(message) {
+            return message.body === 'Hej på dig!';
+        });
+        assert(thisMsg.length > 0);
+    })
+});
+
+function post21MessagesToTopic(topic, clients) {
+   return new Promise(function(resolve) {
+           clients.forEach(function(client) {
+               client.subscribe(topic);
+           });
+            var waitingfor = 21;
+            clients[0].on('message', function(t,msg) {
+                if(t === topic) {
+                    if(waitingfor > 1) {
+                        waitingfor -= 1;
+                    } else {
+                        resolve();
+                    }
+                }
+            })
+            var message = {
+                body: 'Hej på dig!'
+            };
+            var payload = JSON.stringify(message);
+            for(var i = 0; i < 21; i++) {
+                clients[0].publish(topic, payload);
+            }
+        });
 }

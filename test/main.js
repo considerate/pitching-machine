@@ -447,7 +447,7 @@ it('should be able to get messages from before link', function() {
     .then(function(result) {
         var location = result.location.split('/');
         var topic = ['threads',location[2],'messages'].join('/');
-        return post21MessagesToTopic(topic, result.clients)
+        return postMessagesToTopic(topic, result.clients, 21, 'Hej på dig!')
         .then(function() {
             return result.location;
         })
@@ -470,12 +470,12 @@ it('should be able to get messages from before link', function() {
     })
 });
 
-function post21MessagesToTopic(topic, clients) {
+function postMessagesToTopic(topic, clients, numofmsg, text) {
    return new Promise(function(resolve) {
            clients.forEach(function(client) {
                client.subscribe(topic);
            });
-            var waitingfor = 21;
+            var waitingfor = numofmsg;
             clients[0].on('message', function(t,msg) {
                 if(t === topic) {
                     if(waitingfor > 1) {
@@ -486,11 +486,51 @@ function post21MessagesToTopic(topic, clients) {
                 }
             })
             var message = {
-                body: 'Hej på dig!'
+                body: text
             };
             var payload = JSON.stringify(message);
-            for(var i = 0; i < 21; i++) {
+            for(var i = 0; i < numofmsg; i++) {
                 clients[0].publish(topic, payload);
             }
         });
 }
+
+it('should be able to fetch new message history with after link', function() {
+    var threadLocation;
+    var msgId;
+    var clients;
+    var topic;
+    return cleanDatabase()
+    .then(function() {
+        return createThread(['user1','user2'], 'user1');
+    })
+    .then(function(response) {
+        threadlocation = response.headers.location;
+        return connectTwoClients('user1', 'user2');
+    })
+    .then(function(connectedClients) {
+        clients = connectedClients;
+        var topicLocation = threadlocation.split('/');
+        topic = ['threads',topicLocation[2],'messages'].join('/');
+        return postMessagesToTopic(topic, clients, 2, 'Hej!');
+    })
+    .then(function() {
+        var url = homebaseroot + threadlocation + '/messages'; 
+        return request.get(httpHeaders2(url));
+    })
+    .then(function(requestResponse) {
+        msgId = JSON.parse(requestResponse.body).messages[1].id;
+        return postMessagesToTopic(topic, clients, 3, 'Hallå!');
+    })
+    .then(function() {
+        var url = homebaseroot + threadlocation + '/messages' + '?after=' + msgId;
+        return request.get(httpHeaders2(url));
+    })
+    .then(function(reqResponse) {
+        var messages = JSON.parse(reqResponse.body).messages;
+        var thisMsg = messages.filter(function(message) {
+            return message.body === 'Hallå!';
+        });
+        assert.equal(3, messages.length);
+    });
+});

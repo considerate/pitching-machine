@@ -535,8 +535,7 @@ it('should be able to fetch new message history with after link', function() {
     });
 });
 
-it.only('should tell if user are invited to new threads in MQTT topic users/own ID/newthreads', function() {
-    this.timeout(5000);
+it('should tell if user are invited to new threads in MQTT topic users/own ID/newthreads', function() {
     return cleanDatabase()
     .then(function() {
         return connectTwoClients('user1', 'user2');

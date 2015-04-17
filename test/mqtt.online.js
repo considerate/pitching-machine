@@ -60,7 +60,6 @@ describe('mqtt.online', function() {
         });
     });
     it('should log out users if connection lost', function() {
-        this.timeout(1000*60);
         return connectTwoClients('ida','pelle')
         .then(function(clients) {
             return new Promise(function(resolve) {
@@ -77,6 +76,49 @@ describe('mqtt.online', function() {
         })
         .then(function(data) {
             assert.equal('offline', data.status);
+        });
+    });
+
+    it('should not log out if user has a connected client', function() {
+        return connectTwoClients('ida','ida')
+        .then(function(clients) {
+            return new Promise(function(resolve,reject) {
+                var ida = clients[0];
+                var ida2 = clients[1];
+                ida2.on('message', function(topic, message) {
+                    var data = JSON.parse(message.toString());
+                    reject(new Error('User was logged out with connected client'));
+                });
+                setTimeout(function() {
+                    //If no message has arrived in time accept this.
+                    resolve();
+                }, 500);
+                ida2.subscribe('online/ida');
+                ida.publish('online/ida', JSON.stringify({
+                   status:'offline'
+                }));
+            });
+        });
+    });
+
+    it('should not log out if user has a connected client even if forcefully terminated', function() {
+        return connectTwoClients('ida','ida')
+        .then(function(clients) {
+            return new Promise(function(resolve,reject) {
+                var ida = clients[0];
+                var ida2 = clients[1];
+                ida2.on('message', function(topic, message) {
+                    var data = JSON.parse(message.toString());
+                    reject(new Error('User was logged out with connected client'));
+                });
+                setTimeout(function() {
+                    //If no message has arrived in time accept this.
+                    resolve();
+                }, 500);
+                ida2.subscribe('online/ida');
+                //Forcefully kill one ida client
+                ida.stream.end();
+            });
         });
     });
 });

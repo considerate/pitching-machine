@@ -8,7 +8,14 @@ function connectMqtt(userid, token) {
             protocolId: 'MQIsdp',
             protocolVersion: 3,
             username: userid,
-            password: token
+            password: token,
+            will: {
+                topic: ['online', userid].join('/'),
+                payload: JSON.stringify({
+                    status: 'offline'
+                }),
+                qos: 2
+            }
         });
         var timeout = setTimeout(function() {
             reject(); //Fail on time out

@@ -1,3 +1,4 @@
+var assert = require('assert');
 var mqtt = require('./mqtt');
 var connectTwoClients = mqtt.connectTwoClients;
 var connectMqtt = mqtt.connectMqtt;
@@ -56,7 +57,27 @@ describe('mqtt.online', function() {
                 c1.subscribe('online/user1');
 
             });
+        });
+    });
+    it('should log out users if connection lost', function() {
+        this.timeout(1000*60);
+        return connectTwoClients('ida','pelle')
+        .then(function(clients) {
+            return new Promise(function(resolve) {
+                var ida = clients[0];
+                var pelle = clients[1];
+                pelle.on('message', function(topic, message) {
+                    var data = JSON.parse(message.toString());
+                    resolve(data);
+                });
+                pelle.subscribe('online/ida');
+                //Forcefully kill ida
+                ida.stream.end();
+            });
         })
+        .then(function(data) {
+            assert.equal('offline', data.status);
+        });
     });
 });
 

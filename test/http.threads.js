@@ -62,7 +62,7 @@ describe('http.threads', function() {
         });
     });
 
-    it('should return same thread id for a private chatt created with same users', function() {
+    it('should return same thread id for a private chat created with same users', function() {
         return cleanDatabase()
         .then(function(){
             return createThread(['user1','user2'], 'user1')
@@ -73,6 +73,68 @@ describe('http.threads', function() {
                                  responseTwo.headers.location);
                 });
             });
+        });
+    });
+
+    it('should return 404 if group has no group name', function() {
+        var location;
+        return cleanDatabase()
+        .then(function() {
+            return createThread(['user1', 'user3'], 'user2');
+        })
+        .then(function(response) {
+            location = response.headers.location;
+            var url = homebaseroot + location + '/name';
+            return request.get(httpHeaders1(url))
+            .catch(function(error) {
+                assert.equal(404, error.statusCode);
+                return Promise.resolve();
+            })
+        })
+    });
+
+    it('should return group name specified when creating the group', function() {
+        return cleanDatabase()
+        .then(function() {
+             var url = [homebaseroot, 'threads'].join('/');
+             return request.post(postHeaders(url, {
+                        "users": ['user1', 'user2', 'user3'],
+                        "name": "hejsan"
+                    },
+                    httpHeadersForToken(tokenForUser('user2'))
+                )
+            );
+        })
+        .then(function(response) {
+            var location = response.headers.location;
+            var url = homebaseroot + location + '/name';
+            return request.get(httpHeaders1(url));
+        })
+        .then(function(httpResponse) {
+            var body = JSON.parse(httpResponse.body);
+            assert.equal('hejsan', body);
+        })
+    });
+
+    it('should be able to change the group name', function() {
+        var location;
+        return cleanDatabase()
+        .then(function() {
+            return createThread(['user1', 'user2', 'user3'], 'user1');
+        })
+        .then(function(response) {
+            location = response.headers.location;
+            var url = homebaseroot + location + '/name';
+            console.log(url);
+            return request.put(postHeaders(url, {"name": 'hejsan'}, httpHeadersForToken(tokenForUser('user2'))));
+        })
+        .then(function() {
+            var url = homebaseroot + location + '/name';
+            return request.get(httpHeaders1(url));
+        })
+        .then(function(resp) {
+            var body = JSON.parse(resp.body);
+            assert.equal('hejsan', body);
         });
     });
 });

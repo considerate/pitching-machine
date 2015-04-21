@@ -112,7 +112,7 @@ describe('http.threads', function() {
         })
         .then(function(httpResponse) {
             var body = JSON.parse(httpResponse.body);
-            assert.equal('hejsan', body);
+            assert.equal('hejsan', body.name);
         })
     });
 
@@ -125,7 +125,6 @@ describe('http.threads', function() {
         .then(function(response) {
             location = response.headers.location;
             var url = homebaseroot + location + '/name';
-            console.log(url);
             return request.put(postHeaders(url, {"name": 'hejsan'}, httpHeadersForToken(tokenForUser('user2'))));
         })
         .then(function() {
@@ -134,7 +133,7 @@ describe('http.threads', function() {
         })
         .then(function(resp) {
             var body = JSON.parse(resp.body);
-            assert.equal('hejsan', body);
+            assert.equal('hejsan', body.name);
         });
     });
 });

@@ -116,7 +116,7 @@ describe('http.threads', function() {
         })
     });
 
-    it.only('should be able to change the group name as creator', function() {
+    it('should be able to change the group name as creator', function() {
         var location;
         return cleanDatabase()
         .then(function() {

@@ -169,16 +169,11 @@ describe('http.threads', function() {
         .then(function(response) {
             location = response.headers.location;
             var url = homebaseroot + location + '/name';
-            console.log(url);
             return request.del(httpHeaders2(url));
         })
         .then(function() {
             var url = homebaseroot + location;
-            console.log(url);
-            return request.get(httpHeaders1(url))
-            .catch(function(err) {
-                console.log(err.statusCode);
-            })
+            return request.get(httpHeaders1(url));
         })
         .then(function(resp) {
             console.log(resp);

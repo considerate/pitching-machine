@@ -153,7 +153,7 @@ describe('http.threads', function() {
         });
     });
 
-    it.only('should remove the group name if creator', function() {
+    it('should remove the group name if creator', function() {
         var location;
         return cleanDatabase()
         .then(function() {

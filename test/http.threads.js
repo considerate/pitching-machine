@@ -116,7 +116,7 @@ describe('http.threads', function() {
         })
     });
 
-    it('should be able to change the group name', function() {
+    it.only('should be able to change the group name as creator', function() {
         var location;
         return cleanDatabase()
         .then(function() {
@@ -125,7 +125,8 @@ describe('http.threads', function() {
         .then(function(response) {
             location = response.headers.location;
             var url = homebaseroot + location + '/name';
-            return request.put(postHeaders(url, {"name": 'hejsan'}, httpHeadersForToken(tokenForUser('user2'))));
+            console.log(url);
+            return request.put(postHeaders(url, {"name": 'hejsan'}, httpHeadersForToken(tokenForUser('user1'))));
         })
         .then(function() {
             var url = homebaseroot + location + '/name';

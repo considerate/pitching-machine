@@ -21,6 +21,12 @@ function connectMqtt(userid, token) {
             reject(); //Fail on time out
         }, 4000); //4s timeout
         client.on('connect', function () {
+            var json = JSON.stringify({
+                status: 'online'
+            });
+            client.publish('online/'+userid, json, {
+                retain:true
+            });
             clearTimeout(timeout);
             resolve(client); //Success
         });

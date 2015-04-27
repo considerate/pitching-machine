@@ -58,25 +58,6 @@ describe('http.threads.members', function() {
         });
     });
 
-    it('should tell if user are invited to new threads in MQTT topic users/own ID/newthreads', function() {
-        return cleanDatabase()
-        .then(function() {
-            return connectTwoClients('user1', 'user2');
-        })
-        .then(function(clients) {
-            var topic = 'users/user1/newthreads';
-            clients[0].subscribe(topic);
-            return new Promise(function(resolve) {
-                clients[0].on('message', function(t,msg) {
-                    if(t === topic) {
-                        resolve();
-                    }
-                })
-                createThread(['user1','user2'], 'user2');
-            })
-        })
-    });
-
     it('should add self to thread even if not given in array', function () {
         return cleanDatabase()
         .then(function() {
@@ -101,6 +82,22 @@ describe('http.threads.members', function() {
         })
         .then(function(body){
             assert.equal(2, body.threads.length); // There should now be two threads
+        });
+    });
+
+    it('Should not be able to remove other user but yourself from thread', function() {
+       return cleanDatabase()
+       .then(function() {
+        var url = [homebaseroot, 'threads'].join('/');
+        return createThread(['user1', 'user2', 'user3'], 'user1');
+       })
+       .then(function(response) {
+            var location = response.headers.location;
+            var removeUserUrl = homebaseroot + location + '/users/' + 'user1';
+            return request.del(httpHeaders2(removeUserUrl))
+            .catch(function(error) {
+                assert.equal(403, error.statusCode)
+            });
         });
     });
 });

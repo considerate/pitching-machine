@@ -125,7 +125,6 @@ describe('http.threads', function() {
         .then(function(response) {
             location = response.headers.location;
             var url = homebaseroot + location + '/name';
-            console.log(url);
             return request.put(postHeaders(url, {"name": 'hejsan'}, httpHeadersForToken(tokenForUser('user1'))));
         })
         .then(function() {
@@ -135,6 +134,75 @@ describe('http.threads', function() {
         .then(function(resp) {
             var body = JSON.parse(resp.body);
             assert.equal('hejsan', body.name);
+        });
+    });
+
+    it('should not be able to change the group name if not creator', function() {
+        var location;
+        return cleanDatabase()
+        .then(function() {
+            return createThread(['user1', 'user2', 'user3'], 'user1');
+        })
+        .then(function(response) {
+            location = response.headers.location;
+            var url = homebaseroot + location + '/name';
+            return request.put(postHeaders(url, {"name": 'hejsan'}, httpHeadersForToken(tokenForUser('user1'))))
+            .catch(function(error) {
+                console.log(error.statusCode);
+            });
+        });
+    });
+
+    it('should remove the group name if creator', function() {
+        var location;
+        return cleanDatabase()
+        .then(function() {
+             var url = [homebaseroot, 'threads'].join('/');
+             return request.post(postHeaders(url, {
+                        "users": ['user1', 'user2', 'user3'],
+                        "name": "hejsan"
+                    },
+                    httpHeadersForToken(tokenForUser('user2'))
+                )
+            );
+        })
+        .then(function(response) {
+            location = response.headers.location;
+            var url = homebaseroot + location + '/name';
+            console.log(url);
+            return request.del(httpHeaders2(url));
+        })
+        .then(function() {
+            var url = homebaseroot + location;
+            console.log(url);
+            return request.get(httpHeaders1(url))
+            .catch(function(err) {
+                console.log(err.statusCode);
+            })
+        })
+        .then(function(resp) {
+            console.log(resp);
+        })
+    });
+
+    it('should not remove the group name if not creator', function() {
+        return cleanDatabase()
+        .then(function() {
+             var url = [homebaseroot, 'threads'].join('/');
+             return request.post(postHeaders(url, {
+                        "users": ['user1', 'user2', 'user3'],
+                        "name": "hejsan"
+                    },
+                    httpHeadersForToken(tokenForUser('user2'))
+                )
+            );
+        })
+        .then(function(response) {
+            var url = homebaseroot + response.headers.location + '/name';
+            return request.del(httpHeaders1(url))
+            .catch(function(error) {
+                assert.equal(403, error.statusCode);
+            });
         });
     });
 });

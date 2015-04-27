@@ -153,7 +153,7 @@ describe('http.threads', function() {
         });
     });
 
-    it('should remove the group name if creator', function() {
+    it.only('should remove the group name if creator', function() {
         var location;
         return cleanDatabase()
         .then(function() {
@@ -176,7 +176,8 @@ describe('http.threads', function() {
             return request.get(httpHeaders1(url));
         })
         .then(function(resp) {
-            console.log(resp);
+            var body = JSON.parse(resp.body);
+            assert(!body.thread.name);
         })
     });
 

@@ -227,4 +227,28 @@ describe('http.threads.messages', function () {
             assert(thisMsg.length > 0);
         });
     });
+
+    it('should store image field in message', function() {
+        return cleanDatabase()
+        .then(function() {
+            var url = homebaseroot + '/threads';
+            return createThread(['user1', 'user2', 'user3'], 'user3');
+        })
+        .then(function(response) {
+            location = response.headers.location;
+            return connectTwoClients('user1', 'user2');
+        })
+        .then(function(clients) {
+            var topic = 'threads/' + location.split('/')[2] + '/messages';
+            var body = {image: 'http://www.hejsan.se'};
+            var payload = JSON.stringify(body);
+            clients[0].publish(topic, payload);
+            var url = homebaseroot + location + '/messages';
+            return request.get(httpHeaders1(url));
+        })
+        .then(function(httpResponse) {
+            var body = JSON.parse(httpResponse.body);
+            assert.notEqual(undefined, body.messages[0].image);
+        })
+    })
 });

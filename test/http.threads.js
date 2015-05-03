@@ -215,4 +215,26 @@ describe('http.threads', function() {
             });
         });
     });
+
+    it('should provide group name when requesting a thread', function() {
+        return cleanDatabase()
+        .then(function() {
+            var url = homebaseroot + '/threads';
+            return request.post(postHeaders(url, {
+                "users": ['user1', 'user2', 'user3'],
+                "name": "Hej"
+                 },
+                httpHeaders2)
+            );
+        })
+        .then(function(response) {
+            var location = response.headers.location;
+            var url = homebaseroot + location;
+            return request.get(httpHeaders1(url));
+        })
+        .then(function(httpResponse) {
+            var body = JSON.parse(httpResponse.body);
+            assert.notEqual(undefined, body.thread.name);
+        })
+    });
 });

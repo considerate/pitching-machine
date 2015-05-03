@@ -33,8 +33,8 @@ describe('http.threads', function() {
     it('should create new thread', function() {
         var url = [homebaseroot,'threads'].join('/');
         return request.post(postHeaders(url,{
-            "users": ['user1', 'user2']
-        },httpHeaders1))
+                "users": ['user1', 'user2']
+            },httpHeaders1))
         .then(function(response) {
             assert.equal(201, response.statusCode);
             var location = response.headers.location;
@@ -44,6 +44,20 @@ describe('http.threads', function() {
                 assert.equal(200, response.statusCode);
             });
         });
+    });
+
+    it('should fail to create new thread because of auth', function() {
+        return cleanDatabase()
+        .then(function() {
+            var url = homebaseroot + '/threads';
+            return request.post(postHeaders(url, {
+                    "users": ['Olle', 'user1']
+                }, httpHeadersForToken(tokenForUser('Olle')))
+            )
+            .catch(function(error) {
+                assert.equal(500, error.statusCode);
+            })
+        })
     });
 
     it('should create another new thread', function() {

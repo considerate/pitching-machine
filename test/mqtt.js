@@ -43,18 +43,18 @@ function connectTwoClients(user1,user2) {
 }
 exports.connectTwoClients = connectTwoClients;
 
-function postMessagesToTopic(topic, clients, numofmsg, text) {
+function postMessagesToTopic(topic, clients, numofmsg, text, ratio) {
+   ratio = ratio || 1;
    return new Promise(function(resolve) {
            clients.forEach(function(client) {
                client.subscribe(topic);
            });
-            var waitingfor = numofmsg;
+            var recieved = 0;
             clients[0].on('message', function(t,msg) {
                 if(t === topic) {
-                    if(waitingfor > 1) {
-                        waitingfor -= 1;
-                    } else {
-                        resolve();
+                    recieved += 1;
+                    if(recieved/numofmsg >= ratio) {
+                       resolve();
                     }
                 }
             })

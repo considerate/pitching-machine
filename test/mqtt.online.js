@@ -43,6 +43,7 @@ describe('mqtt.online', function() {
         });
     });
     it('should log out users', function() {
+        this.timeout(4000);
         return connectTwoClients('ida','pelle')
         .then(function(clients) {
             return new Promise(function(resolve) {

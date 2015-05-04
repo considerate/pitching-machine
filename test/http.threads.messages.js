@@ -248,7 +248,7 @@ describe('http.threads.messages', function () {
         })
         .then(function(httpResponse) {
             var body = JSON.parse(httpResponse.body);
-            assert.notEqual(undefined, body.messages[0].image);
+            assert(undefined !== body.messages[0].image);
         })
     })
 });

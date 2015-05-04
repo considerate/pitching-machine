@@ -40,6 +40,8 @@ describe('mqtt.messages', function() {
                         var parsedMsg = JSON.parse(msg.toString('utf8'));
                         if(parsedMsg.from !== undefined && parsedMsg.body !== undefined) {
                             resolve();
+                        } else {
+                            throw new Error("Incorrect message format");
                         }
                     }
                 })

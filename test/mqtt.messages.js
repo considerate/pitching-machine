@@ -4,14 +4,16 @@ var http = require('./http');
 var auth = require('./auth');
 var mqtt = require('./mqtt');
 var connectTwoClients = mqtt.connectTwoClients;
+var connectNClients = mqtt.connectNClients;
 var tokenForUser = auth.tokenForUser;
 var httpHeadersForToken = http.httpHeadersForToken;
 var postHeaders = http.postHeaders;
 var createThread = http.createThread;
 var cleanDatabase = http.cleanDatabase;
 var postMessagesToTopic = mqtt.postMessagesToTopic;
+var postMessagesRatio = mqtt.postMessagesRatio;
 
-var homebaseroot = 'http://localhost:8088';
+var homebaseroot = JSON.parse(require('fs').readFileSync(__dirname+'/../config.json')).urls.homebase;
 var userid1 = 'user1';
 var userid2 = 'user2';
 
@@ -52,7 +54,7 @@ describe('mqtt.messages', function() {
         });
     });
 
-    it('should test if 95% of the messages gets through MQTT', function() {
+    it.only('should test if 95% of the messages gets through MQTT', function() {
         this.timeout(30000);
         var location;
         return cleanDatabase()
@@ -61,17 +63,17 @@ describe('mqtt.messages', function() {
         })
         .then(function(response) {
             location = response.headers.location;
-            return connectTwoClients('user1', 'user2');
+            return connectNClients(30);
         })
         .then(function(clients) {
            var topic = 'threads/' + location.split('/')[2] + '/messages';
            var topic2 = 'threads/' + '123' + '/messages';
            var topic3 = 'threads/' + '555' + '/messages';
-           clients[0].setMaxListeners(0);
-           clients[1].setMaxListeners(0);
+           //clients[0].setMaxListeners(0);
+           //clients[1].setMaxListeners(0);
            // Tries to offload to slave after 3000-4000 messages.
            // Need to get slave working.
-           return postMessagesToTopic(topic, clients, 3000, 'hej', 0.95);
+           return postMessagesRatio(topic, clients, 20000, 'hej', 0.95);
            // return Promise.all([
            //          postMessagesToTopic(topic, clients, 1000, 'Hej', 0.95),
            //          postMessagesToTopic(topic2, clients, 1000, 'på', 0.95),

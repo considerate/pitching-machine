@@ -1,3 +1,7 @@
 {
-    "secret": "This is a very secret secret, do not tell anyone."
+    "secret": "This is a very secret secret, do not tell anyone.",
+    "urls": {
+        "homebase": "http://141.255.184.157:8088",
+        "3rd-base": "mqtt://141.255.184.157:1883"
+    }
 }

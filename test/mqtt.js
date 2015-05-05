@@ -1,7 +1,7 @@
 var auth = require('./auth');
 var tokenForUser = auth.tokenForUser;
 var mqtt = require('mqtt');
-var thirdbaseroot = 'mqtt://localhost:1883';
+var thirdbaseroot = JSON.parse(require('fs').readFileSync(__dirname+'/../config.json')).urls['3rd-base'];
 function connectMqtt(userid, token) {
     return new Promise(function(resolve, reject) {
         var client  = mqtt.connect(thirdbaseroot, {
@@ -43,6 +43,49 @@ function connectTwoClients(user1,user2) {
 }
 exports.connectTwoClients = connectTwoClients;
 
+function connectNClients(n) {
+    var promises = [];
+    for(var i = 0; i < n; i++) {
+        var user = 'user'+i;
+        var token = tokenForUser(user);
+        var connect = connectMqtt(user, token);
+        promises.push(connect);
+    }
+    return Promise.all(promises);
+}
+exports.connectNClients = connectNClients;
+
+function postMessagesRatio(topic, clients, numofmsg, text, ratio) {
+   ratio = ratio || 1;
+   return new Promise(function(resolve) {
+            clients.forEach(function(client) {
+               client.subscribe(topic);
+            });
+            var recieved = 0;
+            clients.forEach(function(client) {
+                client.on('message', function(t,msg) {
+                    if(t === topic) {
+                        recieved += 1;
+                        console.log(recieved/numofmsg);
+                        if(recieved/numofmsg >= ratio) {
+                           resolve();
+                        }
+                    }
+                });
+            });
+            var msgperclient = Math.ceil(numofmsg/clients.length);
+            for(var i = 0; i < msgperclient; i++) {
+                clients.forEach(function(client) {
+                    var message = {
+                        body: String(new Date().getTime())
+                    };
+                    var payload = JSON.stringify(message);
+                    client.publish(topic,payload);
+                });
+            }
+        });
+}
+exports.postMessagesRatio = postMessagesRatio;
 function postMessagesToTopic(topic, clients, numofmsg, text, ratio) {
    ratio = ratio || 1;
    return new Promise(function(resolve) {
@@ -53,17 +96,18 @@ function postMessagesToTopic(topic, clients, numofmsg, text, ratio) {
             clients[0].on('message', function(t,msg) {
                 if(t === topic) {
                     recieved += 1;
+                    console.log(recieved/numofmsg);
                     if(recieved/numofmsg >= ratio) {
                        resolve();
                     }
                 }
-            })
+            });
             var message = {
                 body: text
             };
             var payload = JSON.stringify(message);
             for(var i = 0; i < numofmsg; i++) {
-                clients[0].publish(topic, payload);
+                clients[1].publish(topic, payload);
             }
         });
 }

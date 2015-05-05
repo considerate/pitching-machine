@@ -1,6 +1,6 @@
 var auth = require('./auth');
 var tokenForUser = auth.tokenForUser;
-var homebaseroot = 'http://localhost:8088';
+var homebaseroot = JSON.parse(require('fs').readFileSync(__dirname+'/../config.json')).urls.homebase;
 var request = require('request-promise');
 var assert = require('assert');
 

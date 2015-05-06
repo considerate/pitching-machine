@@ -10,7 +10,7 @@ var postHeaders = http.postHeaders;
 var createThread = http.createThread;
 var cleanDatabase = http.cleanDatabase;
 
-var homebaseroot = 'http://localhost:8088';
+var homebaseroot = JSON.parse(require('fs').readFileSync(__dirname+'/../config.json')).urls.homebase;
 var userid1 = 'user1';
 var userid2 = 'user2';
 
@@ -45,7 +45,7 @@ describe('mqtt.name', function() {
                     }
                 });
                 var url = homebaseroot + location + '/name';
-                request.put(postHeaders(url, {"name": "sweet"}, httpHeaders1))
+                request.put(postHeaders(url, {"name": "sweet"}, httpHeaders1));
             });
         });
     });

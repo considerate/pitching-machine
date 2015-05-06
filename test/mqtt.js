@@ -66,7 +66,6 @@ function postMessagesRatio(topic, clients, numofmsg, text, ratio) {
                 client.on('message', function(t,msg) {
                     if(t === topic) {
                         recieved += 1;
-                        console.log(recieved/numofmsg);
                         if(recieved/numofmsg >= ratio) {
                            resolve();
                         }
@@ -96,7 +95,6 @@ function postMessagesToTopic(topic, clients, numofmsg, text, ratio) {
             clients[0].on('message', function(t,msg) {
                 if(t === topic) {
                     recieved += 1;
-                    console.log(recieved/numofmsg);
                     if(recieved/numofmsg >= ratio) {
                        resolve();
                     }

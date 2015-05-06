@@ -8,9 +8,10 @@ var postHeaders = http.postHeaders;
 var createThread = http.createThread;
 var cleanDatabase = http.cleanDatabase;
 
-var homebaseroot = 'http://localhost:8088';
 var userid1 = 'user1';
 var userid2 = 'user2';
+
+var homebaseroot = JSON.parse(require('fs').readFileSync(__dirname+'/../config.json')).urls.homebase;
 
 var loginToken1 = tokenForUser(userid1);
 var loginToken2 = tokenForUser(userid2);
@@ -235,6 +236,82 @@ describe('http.threads', function() {
         .then(function(httpResponse) {
             var body = JSON.parse(httpResponse.body);
             assert.notEqual(undefined, body.thread.name);
+        })
+    });
+
+    it('should not be possible to create a thread with a user that is blocking you', function() {
+        return cleanDatabase()
+        .then(function() {
+            var url = homebaseroot + '/threads';
+            return createThread(['caboose'], 'pelle')
+            .catch(function(error) {
+                assert.equal(400, error.statusCode);
+            })
+        })
+        .then(function(resp) {
+            assert(undefined === resp);
+        })
+    });
+
+    it('should not be possible to create a thread with a user that you are blocking', function() {
+        return cleanDatabase()
+        .then(function() {
+            var url = homebaseroot + '/threads';
+            return createThread(['ida'], 'pelle')
+            .catch(function(error) {
+                assert.equal(400, error.statusCode);
+            })
+        })
+        .then(function(resp) {
+            assert(undefined === resp);
+        })
+    });
+
+    it('should not be possible to add a user that is blocking you to a thread', function() {
+        return cleanDatabase()
+        .then(function() {
+            var url = homebaseroot + '/threads';
+            return createThread(['user1', 'user2'], 'pelle');
+        })
+        .then(function(response) {
+            var location = response.headers.location;
+            var url = homebaseroot + location + '/users';
+            return request.post(postHeaders(url, {
+                        "users": ["caboose"]
+                    },
+                    httpHeadersForToken(tokenForUser('pelle'))
+                    )
+            )
+            .catch(function(error) {
+                assert.equal(400, error.statusCode);
+            })
+        })
+        .then(function(resp) {
+            assert(undefined === resp);
+        })
+    });
+
+    it('should not be possible to add a user to a thread that you are blocking', function() {
+        return cleanDatabase()
+        .then(function() {
+            var url = homebaseroot + '/threads';
+            return createThread(['user1', 'user2'], 'pelle');
+        })
+        .then(function(response) {
+            var location = response.headers.location;
+            var url = homebaseroot + location + '/users';
+            return request.post(postHeaders(url, {
+                        "users": ["ida"]
+                    },
+                    httpHeadersForToken(tokenForUser('pelle'))
+                    )
+            )
+            .catch(function(error) {
+                assert.equal(400, error.statusCode);
+            })
+        })
+        .then(function(resp) {
+            assert(undefined === resp);
         })
     });
 });

@@ -20,7 +20,7 @@ var httpHeaders1 = httpHeadersForToken(loginToken1);
 var httpHeaders2 = httpHeadersForToken(loginToken2);
 
 
-describe.only('mqtt.public', function() {
+describe('mqtt.public', function() {
     it('should be able to connect to a public room, rooms/room ID, and send a message', function() {
         var topic = 'rooms/park1';
         return connectTwoClients('user1', 'user2')

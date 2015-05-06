@@ -128,5 +128,27 @@ describe('mqtt.online', function() {
             });
         });
     });
+
+    it('should not publish online two times if the same user connects as two clients', function() {
+         return connectTwoClients('user1', 'user1')
+        .then(function(clients) {
+            return new Promise(function(resolve) {
+                var c1 = clients[0];
+                var c2 = clients[1];
+                var topic = 'online/user1';
+                var i = 0;
+                c2.on('message', function(topic, message){
+                    i += 1;
+                });
+                c2.subscribe('online/user1');
+                c1.subscribe('online/user1');
+                setTimeout(function() {
+                    if(i == 1) {
+                        resolve();
+                    }
+                }, 1000);
+            });
+        });
+    });
 });
 

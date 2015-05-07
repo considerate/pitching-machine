@@ -20,14 +20,24 @@ var httpHeaders2 = httpHeadersForToken(loginToken2);
 
 describe('http.threads', function() {
     it('should fetch list of own user\'s threads', function () {
-        var url = [homebaseroot, 'users', userid1, 'threads'].join('/');
-        return request.get(httpHeaders1(url))
-        .then(function(response) {
-            assert.equal(200, response.statusCode); //will throw if unequal
-            return JSON.parse(response.body);
+        return cleanDatabase()
+        .then(function() {
+            createThread(['user1', 'user2', 'user3'], 'user1');
+            createThread(['user1', 'user2', 'user3'], 'user2');
+            createThread(['user1', 'user2', 'user3'], 'user3');
+            createThread(['user1', 'user2', 'user3'], 'user4');
+            return createThread(['user1', 'user2', 'user3'], 'user5');
         })
-        .then(function(body){
-            assert(body.threads); // check that returned body has rows.
+        .then(function() {
+            var url = [homebaseroot, 'users', userid1, 'threads'].join('/');
+            return request.get(httpHeaders1(url))
+            .then(function(response) {
+                assert.equal(200, response.statusCode); //will throw if unequal
+                return JSON.parse(response.body);
+            })
+            .then(function(body){
+                assert(body.threads.length == 5); // check that returned body has rows.
+            });
         });
     });
 

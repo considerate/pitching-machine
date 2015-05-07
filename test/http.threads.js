@@ -2,11 +2,13 @@ var request = require('request-promise');
 var assert = require("assert");
 var http = require('./http');
 var auth = require('./auth');
+var time = require('./time');
 var tokenForUser = auth.tokenForUser;
 var httpHeadersForToken = http.httpHeadersForToken;
 var postHeaders = http.postHeaders;
 var createThread = http.createThread;
 var cleanDatabase = http.cleanDatabase;
+var delay = time.delay;
 
 var userid1 = 'user1';
 var userid2 = 'user2';

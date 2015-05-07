@@ -1,6 +1,6 @@
 var request = require('request-promise');
 var assert = require("assert");
-
+var time = require('./time');
 var http = require('./http');
 var auth = require('./auth');
 var mqtt = require('./mqtt');
@@ -11,6 +11,7 @@ var createThread = http.createThread;
 var cleanDatabase = http.cleanDatabase;
 var connectTwoClients = mqtt.connectTwoClients;
 var postMessagesToTopic = mqtt.postMessagesToTopic;
+var delay = time.delay;
 
 var homebaseroot = JSON.parse(require('fs').readFileSync(__dirname+'/../config.json')).urls.homebase;
 var userid1 = 'user1';
@@ -259,6 +260,7 @@ describe('http.threads.messages', function () {
     });
 
     it('should store image field in message', function() {
+        var clients;
         return cleanDatabase()
         .then(function() {
             var url = homebaseroot + '/threads';
@@ -268,11 +270,20 @@ describe('http.threads.messages', function () {
             location = response.headers.location;
             return connectTwoClients('user1', 'user2');
         })
-        .then(function(clients) {
+        .then(function(connClients) {
+            clients = connClients;
+            return delay(100);
+        })
+        .then(function() {
             var topic = 'threads/' + location.split('/')[2] + '/messages';
             var body = {image: 'http://www.hejsan.se'};
             var payload = JSON.stringify(body);
             clients[0].publish(topic, payload);
+        })
+        .then(function() {
+            return delay(100);
+        })
+        .then(function() {
             var url = homebaseroot + location + '/messages';
             return request.get(httpHeaders1(url));
         })
@@ -283,6 +294,7 @@ describe('http.threads.messages', function () {
     });
 
     it('should store text field in message', function() {
+        var clients;
         return cleanDatabase()
         .then(function() {
             var url = homebaseroot + '/threads';
@@ -292,11 +304,20 @@ describe('http.threads.messages', function () {
             location = response.headers.location;
             return connectTwoClients('user1', 'user2');
         })
-        .then(function(clients) {
+        .then(function(connClients) {
+            clients = connClients;
+            return delay(100);
+        })
+        .then(function() {
             var topic = 'threads/' + location.split('/')[2] + '/messages';
             var body = {body: 'http://www.hejsan.se'};
             var payload = JSON.stringify(body);
             clients[0].publish(topic, payload);
+        })
+        .then(function() {
+            return delay(100);
+        })
+        .then(function() {
             var url = homebaseroot + location + '/messages';
             return request.get(httpHeaders1(url));
         })
@@ -306,7 +327,8 @@ describe('http.threads.messages', function () {
         });
     });
 
-it('should be able to send and store messages from same user with two clients', function() {
+    it('should be able to send and store messages from same user with two clients', function() {
+        var clients;
         return cleanDatabase()
         .then(function() {
             var url = homebaseroot + '/threads';
@@ -316,7 +338,11 @@ it('should be able to send and store messages from same user with two clients', 
             location = response.headers.location;
             return connectTwoClients('user1', 'user1');
         })
-        .then(function(clients) {
+        .then(function(connClients) {
+            clients = connClients;
+            return delay(100);
+        })
+        .then(function() {
             var topic = 'threads/' + location.split('/')[2] + '/messages';
             var body = {image: 'http://www.hejsan.se'};
             var body2 = {body: 'Hej!'};
@@ -331,15 +357,15 @@ it('should be able to send and store messages from same user with two clients', 
             var body = JSON.parse(httpResponse.body);
             body.messages.forEach(function(msg) {
                 assert('Hej!' == msg.body || msg.image == 'http://www.hejsan.se');
-            })
+            });
         });
     });
 
     it('should be able for every member of the thread to access the msg history', function() {
         var location;
-        this.timeout('5000')
         var users = ['user1', 'user2', 'user3'];
         var url;
+        var client;
         return cleanDatabase()
         .then(function() {
             return createThread(users, 'user3');
@@ -348,9 +374,16 @@ it('should be able to send and store messages from same user with two clients', 
            location = response.headers.location;
            return connectTwoClients('user1', 'user3');
         })
-        .then(function(clients) {
+        .then(function(connClients) {
+            clients = connClients;
+            return delay(100);
+        })
+        .then(function() {
             var topic = 'threads/' + location.split('/')[2] + '/messages';
             return postMessagesToTopic(topic, clients, 5, 'hej');
+        })
+        .then(function() {
+            return delay(100);
         })
         .then(function() {
             url = homebaseroot + location + '/messages';
@@ -362,12 +395,18 @@ it('should be able to send and store messages from same user with two clients', 
             })
         })  
         .then(function() {
+            return delay(100);
+        })
+        .then(function() {
             var head = httpHeadersForToken(tokenForUser(users[1]));
             return request.get(head(url))
             .then(function(messages) {
                 var body = JSON.parse(messages.body);
                 assert(5 == body.messages.length);
             })
+        })
+        .then(function() {
+            return delay(100);
         })
         .then(function() {
             var head = httpHeadersForToken(tokenForUser(users[2]));
@@ -377,6 +416,158 @@ it('should be able to send and store messages from same user with two clients', 
                 assert(5 == body.messages.length);
             })
         })
-
     });
-});
+
+    it('should not have any chat histroy in newly created thread', function() {
+        return cleanDatabase()
+        .then(function() {
+           return createThread(['user1', 'user2', 'user3'], 'user1');
+        })
+        .then(function(response) {
+            var location = response.headers.location;
+            var url = homebaseroot + location + '/messages';
+            return request.get(httpHeaders1(url));
+        })
+        .then(function(messages) {
+            var body = JSON.parse(messages.body);
+            assert.equal(0, body.messages.length);
+        })
+    })
+
+    it('should be able to fetch old messages history if newly invited to group', function() {
+        var clients;
+        var location;
+        return cleanDatabase()
+        .then(function() {
+            return createThread(['user1', 'user4', 'user2'], 'user1');
+        })
+        .then(function(response) {
+            location = response.headers.location;
+            return connectTwoClients('user1', 'user2');
+        })
+        .then(function(connClients) {
+            clients = connClients;
+            return delay(100);
+        })
+        .then(function() {
+            var topic = location + '/messages';
+            return postMessagesToTopic(topic, clients, 5, 'hej');
+        })
+        .then(function() {
+            return delay(100);
+        })
+        .then(function() {
+            var url = homebaseroot + location + '/users';
+            return request.post(postHeaders(url, {
+                        "users": ['user2']
+                    }, httpHeaders1)
+            );
+        })
+        .then(function() {
+            return delay(100);
+        })
+        .then(function() {
+            var url = homebaseroot + location + '/messages';
+            return request.get(httpHeaders2(url));
+        })
+        .then(function(messages) {
+            var body = JSON.parse(messages.body);
+            assert.equal(5, body.messages.length);
+        });
+    });
+
+    it('should be able to recive sent messages if invited to thread', function() {
+        var clients;
+        var location;
+        return cleanDatabase()
+        .then(function() {
+            return createThread(['user1', 'user4', 'user2'], 'user1');
+        })
+        .then(function(response) {
+            location = response.headers.location;
+            return connectTwoClients('user1', 'user2');
+        })
+        .then(function(connClients) {
+            clients = connClients;
+            return delay(100);
+        })
+        .then(function() {
+            var topic = location + '/messages';
+            return postMessagesToTopic(topic, clients, 5, 'hej');
+        })
+        .then(function() {
+            return delay(100);
+        })
+        .then(function() {
+            var url = homebaseroot + location + '/users';
+            return request.post(postHeaders(url, {
+                        "users": ['user2']
+                    }, httpHeaders1)
+            );
+        })
+        .then(function() {
+            return connectTwoClients('user1', 'user2');
+        })
+        .then(function(connClients) {
+            clients = connClients;
+            return delay(100);
+        })
+        .then(function() {
+            var topic = location + '/messages';
+            return postMessagesToTopic(topic, clients, 5, 'hejsan');
+        });
+    });
+
+    it('should be able to recive sent messages from newly invited user', function() {
+        var clients;
+        var location;
+        return cleanDatabase()
+        .then(function() {
+            return createThread(['user1', 'user4', 'user2'], 'user1');
+        })
+        .then(function(response) {
+            location = response.headers.location;
+            return connectTwoClients('user1', 'user2');
+        })
+        .then(function(connClients) {
+            clients = connClients;
+            return delay(100);
+        })
+        .then(function() {
+            var topic = location + '/messages';
+            return postMessagesToTopic(topic, clients, 5, 'hej');
+        })
+        .then(function() {
+            return delay(100);
+        })
+        .then(function() {
+            var url = homebaseroot + location + '/users';
+            return request.post(postHeaders(url, {
+                        "users": ['user2']
+                    }, httpHeaders1)
+            );
+        })
+        .then(function() {
+            return connectTwoClients('user2', 'user1');
+        })
+        .then(function(connClients) {
+            clients = connClients;
+            return delay(100);
+        })
+        .then(function() {
+            var topic = location + '/messages';
+            return postMessagesToTopic(topic, clients, 5, 'hejsan');
+        })
+        .then(function() {
+            return delay(100);
+        })
+        .then(function() {
+            var url = homebaseroot + location + '/messages';
+            return request.get(httpHeaders1(url));
+        })
+        .then(function(messages) {
+            var body = JSON.parse(messages.body);
+            assert.equal(10, body.messages.length);
+        });
+    });
+ });

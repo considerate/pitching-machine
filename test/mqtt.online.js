@@ -1,11 +1,13 @@
 var assert = require('assert');
 var mqtt = require('./mqtt');
+var time = require('./time');
 var connectTwoClients = mqtt.connectTwoClients;
 var connectMqtt = mqtt.connectMqtt;
 var auth = require('./auth');
 var tokenForUser = auth.tokenForUser;
 var userid1 = 'user1';
 var userid2 = 'user2';
+var delay = time.delay;
 
 var loginToken1 = tokenForUser(userid1);
 var loginToken2 = tokenForUser(userid2);

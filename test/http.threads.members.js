@@ -3,12 +3,14 @@ var request = require('request-promise');
 var http = require('./http');
 var auth = require('./auth');
 var mqtt = require('./mqtt');
+var time = require('./time');
 var connectTwoClients = mqtt.connectTwoClients;
 var tokenForUser = auth.tokenForUser;
 var httpHeadersForToken = http.httpHeadersForToken;
 var postHeaders = http.postHeaders;
 var createThread = http.createThread;
 var cleanDatabase = http.cleanDatabase;
+var delay = time.delay;
 
 var homebaseroot = JSON.parse(require('fs').readFileSync(__dirname+'/../config.json')).urls.homebase;
 var userid1 = 'user1';

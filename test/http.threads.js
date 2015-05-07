@@ -31,7 +31,7 @@ describe('http.threads', function() {
         });
     });
 
-    it('should create new thread', function() {
+    it('should create new private thread', function() {
         var url = [homebaseroot,'threads'].join('/');
         return request.post(postHeaders(url,{
                 "users": ['user1', 'user2']
@@ -47,6 +47,23 @@ describe('http.threads', function() {
         });
     });
 
+    it('should create new group chat', function() {
+        var url = [homebaseroot,'threads'].join('/');
+        return request.post(postHeaders(url,{
+                "users": ['user1', 'user2', 'user3']
+            },httpHeaders1))
+        .then(function(response) {
+            assert.equal(201, response.statusCode);
+            var location = response.headers.location;
+            var locationUrl = homebaseroot + location;
+            return request.get(httpHeaders1(locationUrl))
+            .then(function(response) {
+                assert.equal(200, response.statusCode);
+            });
+        });
+    });
+
+
     it('should fail to create new thread because of auth', function() {
         return cleanDatabase()
         .then(function() {
@@ -59,22 +76,6 @@ describe('http.threads', function() {
                 assert.equal(500, error.statusCode);
             })
         })
-    });
-
-    it('should create another new thread', function() {
-        var url = [homebaseroot,'threads'].join('/');
-        return request.post(postHeaders(url,{
-            "users": ['user3', 'user4']
-        }, httpHeaders1))
-        .then(function(response) {
-            assert.equal(201, response.statusCode);
-            var location = response.headers.location;
-            var locationUrl = homebaseroot + location;
-            return request.get(httpHeaders1(locationUrl))
-            .then(function(response) {
-                assert.equal(200, response.statusCode);
-            });
-        });
     });
 
     it('should return same thread id for a private chat created with same users', function() {
@@ -314,4 +315,21 @@ describe('http.threads', function() {
             assert(undefined === resp);
         })
     });
+
+    it('should return private chat field', function() {
+        return cleanDatabase()
+        .then(function() {
+            var url = homebaseroot + '/threads';
+            return createThread(['user1', 'user3'], 'user3');
+        })
+        .then(function(response) {
+            var url = homebaseroot + response.headers.location;
+            return request.get(httpHeaders1(url));
+        })
+        .then(function(httpResponse) {
+            var body = JSON.parse(httpResponse.body);
+            assert(body.thread.private);
+        });
+    });
+
 });

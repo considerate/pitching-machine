@@ -23,7 +23,7 @@ var httpHeaders1 = httpHeadersForToken(loginToken1);
 var httpHeaders2 = httpHeadersForToken(loginToken2);
 
 describe('mqtt.messages', function() {
-    it('Should send message through MQTT properly', function(){
+    it('Should send a text message in private chat through MQTT properly', function(){
         var location;
         return cleanDatabase()
         .then(function() {
@@ -48,6 +48,99 @@ describe('mqtt.messages', function() {
                     }
                 })
                 var message = {body: 'hej' };
+                var payload = JSON.stringify(message);
+                clients[1].publish(topic, payload);
+            });
+        });
+    });
+
+    it('Should send a text message in group chat through MQTT properly', function(){
+        var location;
+        return cleanDatabase()
+        .then(function() {
+            return createThread(['user1', 'user2', 'user3'], 'user1');
+        })
+        .then(function(response) {
+            location = response.headers.location;
+            return connectTwoClients('user1', 'user2');
+        })
+        .then(function(clients) {
+            var topic = 'threads/' + location.split('/')[2] + '/messages';
+            clients[0].subscribe(topic);
+            return new Promise(function(resolve) {
+                clients[0].on('message', function(t,msg) {
+                    if(t === topic) {
+                        var parsedMsg = JSON.parse(msg.toString('utf8'));
+                        if(parsedMsg.from !== undefined && parsedMsg.body !== undefined) {
+                            resolve();
+                        } else {
+                            throw new Error("Incorrect message format");
+                        }
+                    }
+                })
+                var message = {body: 'hej' };
+                var payload = JSON.stringify(message);
+                clients[1].publish(topic, payload);
+            });
+        });
+    });
+
+    it('Should send a image message in private chat through MQTT properly', function(){
+        var location;
+        return cleanDatabase()
+        .then(function() {
+            return createThread(['user1', 'user2'], 'user1');
+        })
+        .then(function(response) {
+            location = response.headers.location;
+            return connectTwoClients('user1', 'user2');
+        })
+        .then(function(clients) {
+            var topic = 'threads/' + location.split('/')[2] + '/messages';
+            clients[0].subscribe(topic);
+            return new Promise(function(resolve) {
+                clients[0].on('message', function(t,msg) {
+                    if(t === topic) {
+                        var parsedMsg = JSON.parse(msg.toString('utf8'));
+                        if(parsedMsg.from !== undefined && parsedMsg.image !== undefined) {
+                            resolve();
+                        } else {
+                            throw new Error("Incorrect message format");
+                        }
+                    }
+                })
+                var message = {image: 'hej' };
+                var payload = JSON.stringify(message);
+                clients[1].publish(topic, payload);
+            });
+        });
+    });
+
+    it('Should send a image message in group chat through MQTT properly', function(){
+        var location;
+        return cleanDatabase()
+        .then(function() {
+            return createThread(['user1', 'user2', 'user3'], 'user1');
+        })
+        .then(function(response) {
+            location = response.headers.location;
+            return connectTwoClients('user1', 'user2');
+        })
+        .then(function(clients) {
+            var topic = 'threads/' + location.split('/')[2] + '/messages';
+            clients[0].subscribe(topic);
+            return new Promise(function(resolve) {
+                clients[0].on('message', function(t,msg) {
+                    if(t === topic) {
+                        var parsedMsg = JSON.parse(msg.toString('utf8'));
+                        if(parsedMsg.from !== undefined && parsedMsg.image !== undefined) {
+                            resolve();
+                        } else {
+                            throw new Error("Incorrect message format");
+                        }
+                    }
+                })
+                var message = {image: 'hej' };
                 var payload = JSON.stringify(message);
                 clients[1].publish(topic, payload);
             });

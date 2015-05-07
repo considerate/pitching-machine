@@ -21,7 +21,7 @@ var httpHeaders2 = httpHeadersForToken(loginToken2);
 
 
 describe('http.threads.members', function() {
-    it('should add user to thread', function() {
+    it('should add user to group chat', function() {
         var url = [homebaseroot, 'threads'].join('/');
         return request.post(postHeaders(url, {
             "users": ['user1','user2','user3']
@@ -40,7 +40,7 @@ describe('http.threads.members', function() {
         })
     });
 
-    it('should remove user from thread', function() {
+    it('should remove user from private chat', function() {
         var url = [homebaseroot, 'threads'].join('/');
         return request.post(postHeaders(url, {
             "users": ['user1','user2']
@@ -96,7 +96,7 @@ describe('http.threads.members', function() {
             var removeUserUrl = homebaseroot + location + '/users/' + 'user1';
             return request.del(httpHeaders2(removeUserUrl))
             .catch(function(error) {
-                assert.equal(403, error.statusCode)
+                assert.equal(403, error.statusCode);
             });
         });
     });

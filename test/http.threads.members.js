@@ -100,4 +100,26 @@ describe('http.threads.members', function() {
             });
         });
     });
+
+    it('should not list left threads in /users/me/threads', function() {
+        var url = [homebaseroot, 'threads'].join('/');
+        return cleanDatabase()
+        .then(function() {
+            return createThread(['user1', 'user2'], 'user1');
+        })
+        .then(function(response) {
+            var location = response.headers.location;
+            var removeUserUrl = homebaseroot + location + '/users/' + 'user1';
+            return request.del(httpHeaders1(removeUserUrl));
+        })
+        .then(function(response) {
+            var url = homebaseroot + '/users/me/threads';
+            return request.get(httpHeaders1(url));
+        })
+        .then(function(resp) {
+            var body = JSON.parse(resp.body);
+            assert(body.threads.length === 0);
+        })
+    });
+
 });

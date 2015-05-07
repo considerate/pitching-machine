@@ -264,17 +264,17 @@ describe('http.threads', function() {
         })
     });
 
-    it('should not be possible to create a thread with a user that you are blocking', function() {
+    it('should be possible to create a thread with a user that you are blocking', function() {
         return cleanDatabase()
         .then(function() {
             var url = homebaseroot + '/threads';
-            return createThread(['ida'], 'pelle')
+            return createThread(['pelle'], 'ragnar')
             .catch(function(error) {
                 assert.equal(400, error.statusCode);
             })
         })
         .then(function(resp) {
-            assert(undefined === resp);
+            assert(resp.statusCode == 201);
         })
     });
 
@@ -302,19 +302,19 @@ describe('http.threads', function() {
         })
     });
 
-    it('should not be possible to add a user to a thread that you are blocking', function() {
+    it('should be possible to add a user to a thread that you are blocking', function() {
         return cleanDatabase()
         .then(function() {
             var url = homebaseroot + '/threads';
-            return createThread(['user1', 'user2'], 'pelle');
+            return createThread(['user1', 'ragnar'], 'user2');
         })
         .then(function(response) {
             var location = response.headers.location;
             var url = homebaseroot + location + '/users';
             return request.post(postHeaders(url, {
-                        "users": ["ida"]
+                        "users": ["pelle"]
                     },
-                    httpHeadersForToken(tokenForUser('pelle'))
+                    httpHeadersForToken(tokenForUser('ragnar'))
                     )
             )
             .catch(function(error) {
@@ -322,7 +322,7 @@ describe('http.threads', function() {
             })
         })
         .then(function(resp) {
-            assert(undefined === resp);
+            assert(200 === resp.statusCode);
         })
     });
 

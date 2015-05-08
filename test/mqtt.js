@@ -26,9 +26,10 @@ function connectMqtt(userid, token) {
             });
             client.publish('online/'+userid, json, {
                 retain:true
+            }, function() {
+                resolve(client);
+                clearTimeout(timeout);
             });
-            clearTimeout(timeout);
-            resolve(client); //Success
         });
     });
 }
@@ -66,6 +67,7 @@ function postMessagesRatio(topic, clients, numofmsg, text, ratio) {
                 client.on('message', function(t,msg) {
                     if(t === topic) {
                         recieved += 1;
+                        console.log(recieved/numofmsg);
                         if(recieved/numofmsg >= ratio) {
                            resolve();
                         }

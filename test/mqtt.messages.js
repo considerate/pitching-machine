@@ -104,7 +104,7 @@ describe('mqtt.messages', function() {
                 clients[0].on('message', function(t,msg) {
                     if(t === topic) {
                         var parsedMsg = JSON.parse(msg.toString('utf8'));
-                        if(parsedMsg.from !== undefined && parsedMsg.image !== undefined) {
+                        if(parsedMsg.from === 'user2' && parsedMsg.image === 'hej') {
                             resolve();
                         } else {
                             throw new Error("Incorrect message format");
@@ -149,8 +149,8 @@ describe('mqtt.messages', function() {
         });
     });
 
-    it.skip('should test if 95% of the messages gets through MQTT', function() {
-        this.timeout(30000);
+    it.only('should test if 95% of the messages gets through MQTT', function() {
+        this.timeout(40000);
         var location;
         return cleanDatabase()
         .then(function() {
@@ -158,22 +158,15 @@ describe('mqtt.messages', function() {
         })
         .then(function(response) {
             location = response.headers.location;
-            return connectNClients(30);
+            return connectNClients(300);
         })
         .then(function(clients) {
            var topic = 'threads/' + location.split('/')[2] + '/messages';
-           var topic2 = 'threads/' + '123' + '/messages';
-           var topic3 = 'threads/' + '555' + '/messages';
            //clients[0].setMaxListeners(0);
            //clients[1].setMaxListeners(0);
            // Tries to offload to slave after 3000-4000 messages.
            // Need to get slave working.
-           return postMessagesRatio(topic, clients, 2000, 'hej', 0.95)
-           .then(function() {
-              clients.forEach(function(client) {
-                  client.stream.end();
-              });
-           });
+           return postMessagesRatio(topic, clients, 30000, 'hej', 0.95);
            // return Promise.all([
            //          postMessagesToTopic(topic, clients, 1000, 'Hej', 0.95),
            //          postMessagesToTopic(topic2, clients, 1000, 'på', 0.95),

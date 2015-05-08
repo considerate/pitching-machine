@@ -40,7 +40,7 @@ function createThread(users, creator) {
 exports.createThread = createThread;
 
 function cleanDatabase() {
-    var couchroot = 'http://localhost:5984/baseball';
+    var couchroot = 'http://141.255.184.157:5984/baseball';
     return request.get([couchroot,'_all_docs?startkey="_design/"&endkey="_design0"'].join('/'))
     .then(function(designdocstext) {
         var designdocs = JSON.parse(designdocstext).rows.map(function(doc) {

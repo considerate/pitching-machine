@@ -149,10 +149,13 @@ describe('mqtt.messages', function() {
         });
     });
 
-    it.only('should test if 95% of the messages gets through MQTT', function() {
+    it.skip('should test if 95% of the messages gets through MQTT', function() {
         this.timeout(40000);
         var location;
-        return createThread(['user1', 'user2'], 'user3')
+        return cleanDatabase()
+        .then(function() {
+            return createThread(['user1', 'user2'], 'user3');
+        })
         .then(function(response) {
             location = response.headers.location;
             return connectNClients(100);

@@ -46,12 +46,14 @@ exports.connectTwoClients = connectTwoClients;
 
 function connectNClients(n) {
     var promises = [];
+ for(var z = 0;  z < 4; z++) {
     for(var i = 0; i < n; i++) {
         var user = 'user'+i;
         var token = tokenForUser(user);
         var connect = connectMqtt(user, token);
         promises.push(connect);
     }
+}
     return Promise.all(promises);
 }
 exports.connectNClients = connectNClients;

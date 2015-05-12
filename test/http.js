@@ -1,6 +1,7 @@
 var auth = require('./auth');
 var tokenForUser = auth.tokenForUser;
 var homebaseroot = JSON.parse(require('fs').readFileSync(__dirname+'/../config.json')).urls.homebase;
+var couchdbroot = JSON.parse(require('fs').readFileSync(__dirname+'/../config.json')).urls.couch;
 var request = require('request-promise');
 var assert = require('assert');
 
@@ -40,13 +41,12 @@ function createThread(users, creator) {
 exports.createThread = createThread;
 
 function cleanDatabase() {
-    var couchroot = 'http://127.0.0.1:5984/baseball';
-    return request.get([couchroot,'_all_docs?startkey="_design/"&endkey="_design0"'].join('/'))
+    return request.get([couchdbroot,'_all_docs?startkey="_design/"&endkey="_design0"'].join('/'))
     .then(function(designdocstext) {
         var designdocs = JSON.parse(designdocstext).rows.map(function(doc) {
            return doc.id;
         });
-        return request.get([couchroot,'_all_docs'].join('/'))
+        return request.get([couchdbroot,'_all_docs'].join('/'))
         .then(function(alldocstext) {
             var alldocs = JSON.parse(alldocstext).rows;
             var toRemove = alldocs.filter(function(doc){
@@ -62,13 +62,13 @@ function cleanDatabase() {
                 docs: toRemove
             };
             return request.post({
-                url: [couchroot,'_bulk_docs'].join('/'),
+                url: [couchdbroot,'_bulk_docs'].join('/'),
                 body: JSON.stringify(bulk),
                 headers: {
                    'Content-Type': 'application/json'
                 }
             }).then(function(body) {
-                return request.get([couchroot,'_all_docs'].join('/'))
+                return request.get([couchdbroot,'_all_docs'].join('/'))
                 .then(function(body) {
                     var data = JSON.parse(body);
                     assert.equal(designdocs.length, data.rows.length);

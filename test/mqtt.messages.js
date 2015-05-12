@@ -37,7 +37,6 @@ describe('mqtt.messages', function() {
         })
         .then(function(clients) {
             var topic = 'threads/' + location.split('/')[2] + '/messages';
-            clients[0].subscribe(topic);
             return new Promise(function(resolve) {
                 clients[0].on('message', function(t,msg) {
                     if(t === topic) {
@@ -51,7 +50,9 @@ describe('mqtt.messages', function() {
                 })
                 var message = {body: 'hej' };
                 var payload = JSON.stringify(message);
-                clients[1].publish(topic, payload);
+                clients[0].subscribe(topic, function() {
+                    clients[1].publish(topic, payload);
+                });
             });
         });
     });
@@ -68,7 +69,6 @@ describe('mqtt.messages', function() {
         })
         .then(function(clients) {
             var topic = 'threads/' + location.split('/')[2] + '/messages';
-            clients[0].subscribe(topic);
             return new Promise(function(resolve) {
                 clients[0].on('message', function(t,msg) {
                     if(t === topic) {
@@ -82,7 +82,9 @@ describe('mqtt.messages', function() {
                 })
                 var message = {body: 'hej' };
                 var payload = JSON.stringify(message);
-                clients[1].publish(topic, payload);
+                clients[0].subscribe(topic, function() {
+                    clients[1].publish(topic, payload);
+                });
             });
         });
     });
@@ -99,7 +101,6 @@ describe('mqtt.messages', function() {
         })
         .then(function(clients) {
             var topic = 'threads/' + location.split('/')[2] + '/messages';
-            clients[0].subscribe(topic);
             return new Promise(function(resolve) {
                 clients[0].on('message', function(t,msg) {
                     if(t === topic) {
@@ -113,7 +114,9 @@ describe('mqtt.messages', function() {
                 })
                 var message = {image: 'hej' };
                 var payload = JSON.stringify(message);
-                clients[1].publish(topic, payload);
+                clients[0].subscribe(topic, function() {
+                    clients[1].publish(topic, payload);
+                });
             });
         });
     });
@@ -124,20 +127,14 @@ describe('mqtt.messages', function() {
         return createThread(['user1', 'user2'], 'user3')
         .then(function(response) {
             location = response.headers.location;
-            return connectNClients(1000);
+            return connectNClients(1024);
         })
         .then(function(clients) {
            var topic = 'threads/' + location.split('/')[2] + '/messages';
-           //clients[0].setMaxListeners(0);
-           //clients[1].setMaxListeners(0);
-           // Tries to offload to slave after 3000-4000 messages.
-           // Need to get slave working.
-           return postMessagesRatio(topic, clients, 6000, 'hej', 0.95);
-           // return Promise.all([
-           //          postMessagesToTopic(topic, clients, 1000, 'Hej', 0.95),
-           //          postMessagesToTopic(topic2, clients, 1000, 'på', 0.95),
-           //          postMessagesToTopic(topic3, clients, 1000, 'dig', 0.95)
-           //     ]);
+           return postMessagesRatio(topic, clients, 2*4096, 'hej', 0.95)
+           .then(function() {
+               return delay(1000);
+           });
         });
     });
 });

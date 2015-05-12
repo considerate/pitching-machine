@@ -44,9 +44,12 @@ describe('http.threads.members', function() {
 
     it('should remove user from private chat', function() {
         var url = [homebaseroot, 'threads'].join('/');
-        return request.post(postHeaders(url, {
-            "users": ['user1','user2']
-        },httpHeaders1))
+        return cleanDatabase()
+        .then(function() {
+            return request.post(postHeaders(url, {
+                "users": ['user1','user2']
+            }, httpHeaders1));
+        })
         .then(function(response) {
             var location = response.headers.location;
             var removeUserUrl = homebaseroot + location + '/users/' + 'user1';

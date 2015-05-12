@@ -57,11 +57,12 @@ describe('mqtt.online', function() {
                         resolve(data);
                     }
                 });
-                pelle.subscribe('online/ida');
                 var json = JSON.stringify({
                     status: 'offline'
                 });
-                ida.publish('online/ida', json);
+                pelle.subscribe('online/ida', function() {
+                    ida.publish('online/ida', json);
+                });
             });
         });
     });
@@ -77,9 +78,10 @@ describe('mqtt.online', function() {
                         resolve(data);
                     }
                 });
-                pelle.subscribe('online/ida');
-                //Forcefully kill ida
-                ida.stream.end();
+                pelle.subscribe('online/ida', function() {
+                    //Forcefully kill ida
+                    ida.stream.end();
+                });
             });
         });
     });

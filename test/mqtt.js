@@ -27,6 +27,9 @@ function connectMqtt(userid, token) {
                 resolve(client);
             });
         });
+        client.on('error', function(error) {
+            console.log(error);
+        })
     });
 }
 exports.connectMqtt = connectMqtt;
@@ -53,30 +56,33 @@ function connectNClients(n) {
 exports.connectNClients = connectNClients;
 
 function postMessagesRatio(topic, clients, numofmsg, text, ratio) {
-   ratio = ratio || 1;
-   return new Promise(function(resolve) {
-               clients[0].subscribe(topic);
-               clients[1].subscribe(topic);
-               clients[2].subscribe(topic);
-               clients[3].subscribe(topic);
-            var recieved = 0;
-            clients[0].on('message', function(t,msg) {
-                if(t === topic) {
-                    recieved += 1;
-                    if(recieved/numofmsg >= ratio) {
-                        resolve();
-                        clients.forEach(function (client) {
-                            var offlinemsg = JSON.stringify({
-                                status: 'offline'
-                            });
-                            client.publish('online/'+client.options.username, offlinemsg);
-                            client.end();
-                        })
-                    }
+    ratio = ratio || 1;
+    return new Promise(function(resolve) {
+        var recieved = 0;
+        var late = 0;
+        clients[0].on('message', function(t,payload) {
+            if(t === topic) {
+                recieved += 1;
+                console.log('Received:', recieved/numofmsg);
+                var msg = JSON.parse(payload.toString());
+                var timediff = Date.now() - new Date(msg).getTime();
+                if(timediff > 30000) {
+                    late += 1;
                 }
-            });
-            var msgperclient = Math.ceil(numofmsg/clients.length);
-            var numsent = 0;
+                if (late/numofmsg >= 1-ratio) {
+                    throw new Error('Took too long to receive message');
+                }
+                if(recieved/numofmsg >= ratio) {
+                    resolve();
+                    clients.forEach(function (client) {
+                        client.stream.end();
+                    });
+                }
+            }
+        });
+        var msgperclient = Math.ceil(numofmsg/clients.length);
+        var sent = 0;
+        clients[0].subscribe(topic, function () {
             clients.forEach(function(client) {
                 var dummyArray = [];
                 for(var i = 0; i < msgperclient; i++) {
@@ -90,37 +96,59 @@ function postMessagesRatio(topic, clients, numofmsg, text, ratio) {
                             };
                             var payload = JSON.stringify(message);
                             client.publish(topic,payload);
-                            numsent++;
+                            sent += 1;
+                            console.log('Sent:', sent/numofmsg);
                             setTimeout(resolve, 620 * Math.random() + 20);
                         });
                     });
                 }, Promise.resolve());
             });
         });
+    });
 }
 exports.postMessagesRatio = postMessagesRatio;
+
+function delay(ms) {
+    return new Promise(function(resolve) {
+        setTimeout(resolve,ms);
+    });
+}
+
+function subscribeToTopic(topic, clients) {
+   return Promise.all(clients.map(function(client) {
+       return delay(1+10*Math.random()).then(function() {
+           return new Promise(function(resolve) {
+               client.subscribe(topic,resolve);
+           });
+       });
+   }));
+}
+
 function postMessagesToTopic(topic, clients, numofmsg, text, ratio) {
    ratio = ratio || 1;
-   return new Promise(function(resolve) {
-           clients.forEach(function(client) {
-               client.subscribe(topic);
-           });
-            var recieved = 0;
-            clients[0].on('message', function(t,msg) {
-                if(t === topic) {
-                    recieved += 1;
-                    if(recieved/numofmsg >= ratio) {
+   return subscribeToTopic(topic,clients)
+   .then(function() {
+       return new Promise(function(resolve) {
+           var recieved = 0;
+           clients[0].on('message', function(t,payload) {
+               var msg = JSON.parse(payload.toString());
+               if(t === topic && msg.body === text) {
+                   recieved += 1;
+                   if(numofmsg === recieved) {
                        resolve();
-                    }
-                }
-            });
-            var message = {
-                body: text
-            };
-            var payload = JSON.stringify(message);
-            for(var i = 0; i < numofmsg; i++) {
-                clients[1].publish(topic, payload);
-            }
-        });
+                   }
+               }
+           });
+           var message = {
+               body: text
+           };
+           var payload = JSON.stringify(message);
+           var sent = 0;
+           for(var i = 0; i < numofmsg; i++) {
+               clients[1].publish(topic, payload);
+               sent += 1;
+           }
+       });
+   });
 }
 exports.postMessagesToTopic = postMessagesToTopic;

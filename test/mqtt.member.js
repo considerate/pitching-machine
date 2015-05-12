@@ -30,14 +30,15 @@ describe('mqtt.members', function() {
         })
         .then(function(clients) {
             var topic = 'users/user1/newthreads';
-            clients[0].subscribe(topic);
             return new Promise(function(resolve) {
                 clients[0].on('message', function(t,msg) {
                     if(t === topic) {
                         resolve();
                     }
                 })
-                createThread(['user1','user2'], 'user2');
+                clients[0].subscribe(topic, function() {
+                    createThread(['user1','user2'], 'user2');
+                });
             })
         })
     });
@@ -49,15 +50,15 @@ describe('mqtt.members', function() {
         })
         .then(function(clients) {
             var topic = 'users/user1/newthreads';
-            clients[0].subscribe(topic);
             return new Promise(function(resolve) {
                 clients[0].on('message', function(t,msg) {
                     if(t === topic) {
-                        //console.log(msg.toString('utf8'));
                         resolve();
                     }
                 })
-                createThread(['user1','user2', 'user3'], 'user2');
+                clients[0].subscribe(topic, function() {
+                    createThread(['user1','user2', 'user3'], 'user2');
+                });
             })
         })
     });
@@ -75,7 +76,6 @@ describe('mqtt.members', function() {
         .then(function(clients) {
             var threadId = location.split('/')[2];
             var topic = 'threads/' + threadId + '/members';
-            clients[0].subscribe(topic);
             return new Promise(function(resolve) {
                 clients[0].on('message', function(t,msg) {
                   if(t === topic) {
@@ -83,7 +83,9 @@ describe('mqtt.members', function() {
                   }
                 })
                 var url = homebaseroot + location + '/users';
-                request.post(postHeaders(url, {"users": ['user4']}, httpHeaders1));
+                clients[0].subscribe(topic, function() {
+                    request.post(postHeaders(url, {"users": ['user4']}, httpHeaders1));
+                });
              });
         });
     });

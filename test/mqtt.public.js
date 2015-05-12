@@ -27,7 +27,6 @@ describe('mqtt.public', function() {
         var topic = 'rooms/park1';
         return connectTwoClients('user1', 'user2')
         .then(function(clients) {
-            clients[0].subscribe(topic);
             clients[1].subscribe(topic);
             return new Promise(function(resolve) {
                 clients[0].on('message', function(t, msg) {
@@ -42,7 +41,9 @@ describe('mqtt.public', function() {
                     body: 'Hej!'
                 };
                 var payload = JSON.stringify(body);
-                clients[1].publish(topic, payload);
+                clients[0].subscribe(topic, function() {
+                    clients[1].publish(topic, payload);
+                });
             });
         });
     });

@@ -92,15 +92,16 @@ describe('http.threads.messages', function () {
                         }
                     }
                 })
-                c1.subscribe(topic);
                 c2.subscribe(topic);
                 var message = {
                     body: 'Hej på dig!'
                 };
                 var payload = JSON.stringify(message);
-                for(var i = 0; i < 21; i++) {
-                    c1.publish(topic, payload);
-                }
+                c1.subscribe(topic, function() {
+                    for(var i = 0; i < 21; i++) {
+                        c1.publish(topic, payload);
+                    }
+                });
             })
             .then(function() {
                 var messageUrl = homebaseroot + location.join('/') + '/messages';
@@ -234,13 +235,14 @@ describe('http.threads.messages', function () {
                         resolve();
                     }
                 })
-                c1.subscribe(topic);
                 c2.subscribe(topic);
                 var message = {
                     body: 'Hej på dig!'
                 };
                 var payload = JSON.stringify(message);
-                c1.publish(topic, payload);
+                c1.subscribe(topic, function() {
+                    c1.publish(topic, payload);
+                });
             })
             .then(function() {
                 var messageUrl = homebaseroot + location.join('/') + '/messages';
@@ -272,16 +274,12 @@ describe('http.threads.messages', function () {
         })
         .then(function(connClients) {
             clients = connClients;
-            return delay(100);
         })
         .then(function() {
             var topic = 'threads/' + location.split('/')[2] + '/messages';
             var body = {image: 'http://www.hejsan.se'};
             var payload = JSON.stringify(body);
             clients[0].publish(topic, payload);
-        })
-        .then(function() {
-            return delay(100);
         })
         .then(function() {
             var url = homebaseroot + location + '/messages';
@@ -376,14 +374,10 @@ describe('http.threads.messages', function () {
         })
         .then(function(connClients) {
             clients = connClients;
-            return delay(100);
         })
         .then(function() {
             var topic = 'threads/' + location.split('/')[2] + '/messages';
             return postMessagesToTopic(topic, clients, 5, 'hej');
-        })
-        .then(function() {
-            return delay(100);
         })
         .then(function() {
             url = homebaseroot + location + '/messages';
@@ -395,18 +389,12 @@ describe('http.threads.messages', function () {
             })
         })  
         .then(function() {
-            return delay(100);
-        })
-        .then(function() {
             var head = httpHeadersForToken(tokenForUser(users[1]));
             return request.get(head(url))
             .then(function(messages) {
                 var body = JSON.parse(messages.body);
                 assert(5 == body.messages.length);
             })
-        })
-        .then(function() {
-            return delay(100);
         })
         .then(function() {
             var head = httpHeadersForToken(tokenForUser(users[2]));
@@ -439,32 +427,23 @@ describe('http.threads.messages', function () {
         var location;
         return cleanDatabase()
         .then(function() {
-            return createThread(['user1', 'user4', 'user2'], 'user1');
+            return createThread(['user1', 'user4', 'user3'], 'user1');
         })
         .then(function(response) {
             location = response.headers.location;
-            return connectTwoClients('user1', 'user2');
+            return connectTwoClients('user3', 'user4');
         })
-        .then(function(connClients) {
-            clients = connClients;
-            return delay(100);
-        })
-        .then(function() {
-            var topic = location + '/messages';
-            return postMessagesToTopic(topic, clients, 5, 'hej');
-        })
-        .then(function() {
-            return delay(100);
+        .then(function(clients) {
+            var topic = location.substr(1) + '/messages';
+            return postMessagesToTopic(topic, clients, 5, 'hej asd');
         })
         .then(function() {
             var url = homebaseroot + location + '/users';
-            return request.post(postHeaders(url, {
-                        "users": ['user2']
-                    }, httpHeaders1)
+            return request.post(
+                postHeaders(url, {
+                    "users": ['user2']
+                }, httpHeaders1)
             );
-        })
-        .then(function() {
-            return delay(100);
         })
         .then(function() {
             var url = homebaseroot + location + '/messages';
@@ -477,7 +456,6 @@ describe('http.threads.messages', function () {
     });
 
     it('should be able to recive sent messages if invited to thread', function() {
-        var clients;
         var location;
         return cleanDatabase()
         .then(function() {
@@ -487,16 +465,9 @@ describe('http.threads.messages', function () {
             location = response.headers.location;
             return connectTwoClients('user1', 'user2');
         })
-        .then(function(connClients) {
-            clients = connClients;
-            return delay(100);
-        })
-        .then(function() {
+        .then(function(clients) {
             var topic = location + '/messages';
             return postMessagesToTopic(topic, clients, 5, 'hej');
-        })
-        .then(function() {
-            return delay(100);
         })
         .then(function() {
             var url = homebaseroot + location + '/users';
@@ -508,18 +479,13 @@ describe('http.threads.messages', function () {
         .then(function() {
             return connectTwoClients('user1', 'user2');
         })
-        .then(function(connClients) {
-            clients = connClients;
-            return delay(100);
-        })
-        .then(function() {
+        .then(function(clients) {
             var topic = location + '/messages';
             return postMessagesToTopic(topic, clients, 5, 'hejsan');
         });
     });
 
     it('should be able to recive sent messages from newly invited user', function() {
-        var clients;
         var location;
         return cleanDatabase()
         .then(function() {
@@ -529,37 +495,23 @@ describe('http.threads.messages', function () {
             location = response.headers.location;
             return connectTwoClients('user1', 'user2');
         })
-        .then(function(connClients) {
-            clients = connClients;
-            return delay(100);
-        })
-        .then(function() {
-            var topic = location + '/messages';
+        .then(function(clients) {
+            var topic = location.substr(1) + '/messages';
             return postMessagesToTopic(topic, clients, 5, 'hej');
-        })
-        .then(function() {
-            return delay(100);
         })
         .then(function() {
             var url = homebaseroot + location + '/users';
             return request.post(postHeaders(url, {
                         "users": ['user2']
-                    }, httpHeaders1)
+            }, httpHeaders1)
             );
         })
         .then(function() {
             return connectTwoClients('user2', 'user1');
         })
-        .then(function(connClients) {
-            clients = connClients;
-            return delay(100);
-        })
-        .then(function() {
-            var topic = location + '/messages';
+        .then(function(clients) {
+            var topic = location.substr(1) + '/messages';
             return postMessagesToTopic(topic, clients, 5, 'hejsan');
-        })
-        .then(function() {
-            return delay(100);
         })
         .then(function() {
             var url = homebaseroot + location + '/messages';

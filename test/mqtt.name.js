@@ -39,15 +39,16 @@ describe('mqtt.name', function() {
         })
         .then(function(clients) {
             var topic = 'threads/' + location.split('/')[2] + '/name';
-            clients[0].subscribe(topic);
             return new Promise(function(resolve) {
                 clients[0].on('message', function(t, msg) {
                     if(t === topic) {
                         resolve();
                     }
                 });
-                var url = homebaseroot + location + '/name';
-                request.put(postHeaders(url, {"name": "sweet"}, httpHeaders1));
+                clients[0].subscribe(topic, function () {
+                    var url = homebaseroot + location + '/name';
+                    request.put(postHeaders(url, {"name": "sweet"}, httpHeaders1));
+                });
             });
         });
     });
@@ -69,15 +70,16 @@ describe('mqtt.name', function() {
         })
         .then(function(clients) {
             var topic = 'threads/' + location.split('/')[2] + '/name';
-            clients[0].subscribe(topic);
             return new Promise(function(resolve) {
                 clients[0].on('message', function(t, msg) {
                     if(t === topic) {
                         resolve();
                     }
                 });
-                var url = homebaseroot + location + '/name';
-                request.del(httpHeaders1(url));
+                clients[0].subscribe(topic, function() {
+                    var url = homebaseroot + location + '/name';
+                    request.del(httpHeaders1(url));
+                });
             });
         });
     });

@@ -17,9 +17,6 @@ function connectMqtt(userid, token) {
                 qos: 2
             }
         });
-        var timeout = setTimeout(function() {
-            reject(); //Fail on time out
-        }, 4000); //4s timeout
         client.on('connect', function () {
             var json = JSON.stringify({
                 status: 'online'
@@ -28,7 +25,6 @@ function connectMqtt(userid, token) {
                 retain:true
             }, function() {
                 resolve(client);
-                clearTimeout(timeout);
             });
         });
     });
@@ -59,31 +55,47 @@ exports.connectNClients = connectNClients;
 function postMessagesRatio(topic, clients, numofmsg, text, ratio) {
    ratio = ratio || 1;
    return new Promise(function(resolve) {
-            clients.forEach(function(client) {
-               client.subscribe(topic);
-            });
+               clients[0].subscribe(topic);
+               clients[1].subscribe(topic);
+               clients[2].subscribe(topic);
+               clients[3].subscribe(topic);
             var recieved = 0;
-            clients.forEach(function(client) {
-                client.on('message', function(t,msg) {
-                    if(t === topic) {
-                        recieved += 1;
-                        console.log(recieved/numofmsg);
-                        if(recieved/numofmsg >= ratio) {
-                           resolve();
-                        }
+            clients[0].on('message', function(t,msg) {
+                if(t === topic) {
+                    recieved += 1;
+                    if(recieved/numofmsg >= ratio) {
+                        resolve();
+                        clients.forEach(function (client) {
+                            var offlinemsg = JSON.stringify({
+                                status: 'offline'
+                            });
+                            client.publish('online/'+client.options.username, offlinemsg);
+                            client.end();
+                        })
                     }
-                });
+                }
             });
             var msgperclient = Math.ceil(numofmsg/clients.length);
-            for(var i = 0; i < msgperclient; i++) {
-                clients.forEach(function(client) {
-                    var message = {
-                        body: String(new Date().getTime())
-                    };
-                    var payload = JSON.stringify(message);
-                    client.publish(topic,payload);
-                });
-            }
+            var numsent = 0;
+            clients.forEach(function(client) {
+                var dummyArray = [];
+                for(var i = 0; i < msgperclient; i++) {
+                    dummyArray.push(i);
+                }
+                dummyArray.reduce(function(promise, msgi) {
+                    return promise.then(function() {
+                        return new Promise(function(resolve) {
+                            var message = {
+                                body: String(new Date().getTime())
+                            };
+                            var payload = JSON.stringify(message);
+                            client.publish(topic,payload);
+                            numsent++;
+                            setTimeout(resolve, 620 * Math.random() + 20);
+                        });
+                    });
+                }, Promise.resolve());
+            });
         });
 }
 exports.postMessagesRatio = postMessagesRatio;

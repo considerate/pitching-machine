@@ -87,38 +87,7 @@ describe('mqtt.messages', function() {
         });
     });
 
-    it('Should send a image message in private chat through MQTT properly', function(){
-        var location;
-        return cleanDatabase()
-        .then(function() {
-            return createThread(['user1', 'user2'], 'user1');
-        })
-        .then(function(response) {
-            location = response.headers.location;
-            return connectTwoClients('user1', 'user2');
-        })
-        .then(function(clients) {
-            var topic = 'threads/' + location.split('/')[2] + '/messages';
-            clients[0].subscribe(topic);
-            return new Promise(function(resolve) {
-                clients[0].on('message', function(t,msg) {
-                    if(t === topic) {
-                        var parsedMsg = JSON.parse(msg.toString('utf8'));
-                        if(parsedMsg.from === 'user2' && parsedMsg.image === 'hej') {
-                            resolve();
-                        } else {
-                            throw new Error("Incorrect message format");
-                        }
-                    }
-                })
-                var message = {image: 'hej' };
-                var payload = JSON.stringify(message);
-                clients[1].publish(topic, payload);
-            });
-        });
-    });
-
-    it('Should send a image message in group chat through MQTT properly', function(){
+    it('Should send a image message in chat through MQTT properly', function(){
         var location;
         return cleanDatabase()
         .then(function() {
@@ -150,12 +119,12 @@ describe('mqtt.messages', function() {
     });
 
     it.only('should test if 95% of the messages gets through MQTT', function() {
-        this.timeout(40000);
+        this.timeout(0);
         var location;
         return createThread(['user1', 'user2'], 'user3')
         .then(function(response) {
             location = response.headers.location;
-            return connectNClients(10000);
+            return connectNClients(1000);
         })
         .then(function(clients) {
            var topic = 'threads/' + location.split('/')[2] + '/messages';
@@ -163,7 +132,7 @@ describe('mqtt.messages', function() {
            //clients[1].setMaxListeners(0);
            // Tries to offload to slave after 3000-4000 messages.
            // Need to get slave working.
-           return postMessagesRatio(topic, clients, 300000, 'hej', 0.95);
+           return postMessagesRatio(topic, clients, 6000, 'hej', 0.95);
            // return Promise.all([
            //          postMessagesToTopic(topic, clients, 1000, 'Hej', 0.95),
            //          postMessagesToTopic(topic2, clients, 1000, 'på', 0.95),

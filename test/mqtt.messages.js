@@ -149,16 +149,13 @@ describe('mqtt.messages', function() {
         });
     });
 
-    it.skip('should test if 95% of the messages gets through MQTT', function() {
+    it.only('should test if 95% of the messages gets through MQTT', function() {
         this.timeout(40000);
         var location;
-        return cleanDatabase()
-        .then(function() {
-            return createThread(['user1', 'user2'], 'user3');
-        })
+        return createThread(['user1', 'user2'], 'user3')
         .then(function(response) {
             location = response.headers.location;
-            return connectNClients(100);
+            return connectNClients(10000);
         })
         .then(function(clients) {
            var topic = 'threads/' + location.split('/')[2] + '/messages';
@@ -166,7 +163,7 @@ describe('mqtt.messages', function() {
            //clients[1].setMaxListeners(0);
            // Tries to offload to slave after 3000-4000 messages.
            // Need to get slave working.
-           return postMessagesRatio(topic, clients, 30000, 'hej', 0.95);
+           return postMessagesRatio(topic, clients, 300000, 'hej', 0.95);
            // return Promise.all([
            //          postMessagesToTopic(topic, clients, 1000, 'Hej', 0.95),
            //          postMessagesToTopic(topic2, clients, 1000, 'på', 0.95),

@@ -23,7 +23,7 @@ var httpHeaders2 = httpHeadersForToken(loginToken2);
 
 
 describe('mqtt.public', function() {
-    it.skip('should be able to connect to a public room, rooms/room ID, and send a message', function() {
+    it('should be able to connect to a public room, rooms/room ID, and send a message', function() {
         var topic = 'rooms/park1';
         return connectTwoClients('user1', 'user2')
         .then(function(clients) {
@@ -33,7 +33,7 @@ describe('mqtt.public', function() {
                 clients[0].on('message', function(t, msg) {
                     if(t == topic) {
                         var message = JSON.parse(msg.toString());
-                        if(message.body !== undefined && message.from !== undefined) {
+                        if(message.body !== undefined) {
                             resolve();
                         }
                     }
